@@ -68,3 +68,7 @@ class AdRecord(models.Model):
             'completed': 'info'
         }
         return status_classes.get(self.status, 'secondary')
+
+    def get_duration_days(self):
+        """Get the duration in days based on amount"""
+        return self.AMOUNT_DAYS_MAPPING.get(self.amount, 0)

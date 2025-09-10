@@ -69,9 +69,30 @@ def add_payment_details(request, ad_id):
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    pending_ads = AdRecord.objects.filter(status='pending')
-    return render(request, 'campaigns/admin_dashboard.html', {'pending_ads': pending_ads})
+    # Get all ads with filters
+    status_filter = request.GET.get('status', 'all')
 
+    all_ads = AdRecord.objects.all().order_by('-entry_date')
+
+    if status_filter != 'all':
+        all_ads = all_ads.filter(status=status_filter)
+
+    # Count by status for filters
+    status_counts = {
+        'all': AdRecord.objects.count(),
+        'enquiry': AdRecord.objects.filter(status='enquiry').count(),
+        'pending': AdRecord.objects.filter(status='pending').count(),
+        'active': AdRecord.objects.filter(status='active').count(),
+        'completed': AdRecord.objects.filter(status='completed').count(),
+    }
+
+    context = {
+        'all_ads': all_ads,
+        'status_filter': status_filter,
+        'status_counts': status_counts,
+        'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
+    }
+    return render(request, 'campaigns/admin_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_admin)

@@ -5,54 +5,267 @@
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
-            <span class="badge bg-primary">Pending Verifications: {{ pending_ads.count }}</span>
+            <div>
+                <span class="badge bg-primary me-2">Total Ads: {{ status_counts.all }}</span>
+                <span class="badge bg-secondary me-2">Enquiries: {{ status_counts.enquiry }}</span>
+                <span class="badge bg-warning me-2">Pending: {{ status_counts.pending }}</span>
+                <span class="badge bg-success me-2">Active: {{ status_counts.active }}</span>
+                <span class="badge bg-info">Completed: {{ status_counts.completed }}</span>
+            </div>
         </div>
 
-        {% if pending_ads %}
-        <div class="card mb-4 border-warning">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Payment Verification</h5>
+        <!-- Status Filter Buttons -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">Filter by Status:</h6>
+                <div class="btn-group" role="group">
+                    <a href="?status=all" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
+                        All Ads
+                    </a>
+                    <a href="?status=enquiry" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
+                        Enquiries ({{ status_counts.enquiry }})
+                    </a>
+                    <a href="?status=pending" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
+                        Pending ({{ status_counts.pending }})
+                    </a>
+                    <a href="?status=active" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">
+                        Active ({{ status_counts.active }})
+                    </a>
+                    <a href="?status=completed" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">
+                        Completed ({{ status_counts.completed }})
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Ads Table -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i>
+                    {% if status_filter == 'all' %}
+                        All Ad Campaigns
+                    {% else %}
+                        {{ status_filter|title }} Campaigns
+                    {% endif %}
+                    ({{ all_ads.count }})
+                </h5>
             </div>
             <div class="card-body">
+                {% if all_ads %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
                             <tr>
                                 <th>Ad Name</th>
-                                <th>Business Name</th>
+                                <th>Business</th>
+                                <th>Status</th>
                                 <th>Amount</th>
-                                <th>Last 4 UPI</th>
                                 <th>Employee</th>
                                 <th>Entry Date</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for ad in pending_ads %}
+                            {% for ad in all_ads %}
                             <tr>
                                 <td>{{ ad.ad_name }}</td>
                                 <td>{{ ad.business_name }}</td>
-                                <td>₹{{ ad.amount }}</td>
-                                <td>{{ ad.upi_last_four }}</td>
+                                <td>
+                                    <span class="badge bg-{{ ad.get_status_display_class }}">
+                                        {{ ad.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if ad.amount %}
+                                        ₹{{ ad.amount }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
                                 <td>{{ ad.user.username }}</td>
                                 <td>{{ ad.entry_date|date:"M d, Y" }}</td>
                                 <td>
-                                    <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-check-circle"></i> Verify
-                                    </a>
+                                    {% if ad.start_date %}
+                                        {{ ad.start_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.end_date %}
+                                        {{ ad.end_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.status == 'enquiry' %}
+                                        <span class="text-muted">Waiting for payment</span>
+                                    {% elif ad.status == 'pending' %}
+                                        <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-check-circle"></i> Verify
+                                        </a>
+                                    {% elif ad.status == 'active' %}
+                                        <span class="text-success">Active</span>
+                                    {% elif ad.status == 'completed' %}
+                                        <span class="text-info">Completed</span>
+                                    {% endif %}
+
+                                    <!-- View details button for all ads -->
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
                                 </td>
                             </tr>
+
+                            <!-- Details Modal -->
+                            <div class="modal fade" id="adDetailsModal{{ ad.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Ad Details: {{ ad.ad_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Basic Information</h6>
+                                                    <p><strong>Ad Name:</strong> {{ ad.ad_name }}</p>
+                                                    <p><strong>Business:</strong> {{ ad.business_name }}</p>
+                                                    <p><strong>Status:</strong>
+                                                        <span class="badge bg-{{ ad.get_status_display_class }}">
+                                                            {{ ad.get_status_display }}
+                                                        </span>
+                                                    </p>
+                                                    <p><strong>Employee:</strong> {{ ad.user.get_full_name|default:ad.user.username }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Dates</h6>
+                                                    <p><strong>Entry Date:</strong> {{ ad.entry_date|date:"M d, Y H:i" }}</p>
+                                                    <p><strong>Start Date:</strong>
+                                                        {% if ad.start_date %}
+                                                            {{ ad.start_date|date:"M d, Y" }}
+                                                        {% else %}
+                                                            Not started
+                                                        {% endif %}
+                                                    </p>
+                                                    <p><strong>End Date:</strong>
+                                                        {% if ad.end_date %}
+                                                            {{ ad.end_date|date:"M d, Y" }}
+                                                        {% else %}
+                                                            Not set
+                                                        {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <hr>
+
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Payment Information</h6>
+                                                    <p><strong>Amount:</strong>
+                                                        {% if ad.amount %}
+                                                            ₹{{ ad.amount }}
+                                                        {% else %}
+                                                            Not set
+                                                        {% endif %}
+                                                    </p>
+                                                    <p><strong>Last 4 UPI Digits:</strong>
+                                                        {% if ad.upi_last_four %}
+                                                            {{ ad.upi_last_four }}
+                                                        {% else %}
+                                                            Not provided
+                                                        {% endif %}
+                                                    </p>
+                                                    <p><strong>Admin UPI ID:</strong>
+                                                        {% if ad.admin_upi_id %}
+                                                            {{ ad.admin_upi_id }}
+                                                        {% else %}
+                                                            Not verified
+                                                        {% endif %}
+                                                    </p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Notes</h6>
+                                                    <p>{{ ad.notes|default:"No notes provided" }}</p>
+                                                </div>
+                                            </div>
+
+                                            {% if ad.renewed_from %}
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <h6>Renewal History</h6>
+                                                    <p class="text-muted">
+                                                        Renewed from: {{ ad.renewed_from.ad_name }}
+                                                        (Completed on {{ ad.renewed_from.end_date|date:"M d, Y" }})
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    {% if status_filter == 'all' %}
+                        No ad campaigns found.
+                    {% else %}
+                        No {{ status_filter }} campaigns found.
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% else %}
-        <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> No pending payment verifications!
+
+        <!-- Quick Stats Cards -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ status_counts.all }}</h5>
+                        <p class="card-text">Total Ads</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ status_counts.pending }}</h5>
+                        <p class="card-text">Pending Verification</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ status_counts.active }}</h5>
+                        <p class="card-text">Active Campaigns</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ status_counts.completed }}</h5>
+                        <p class="card-text">Completed</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
