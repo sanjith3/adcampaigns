@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
+            <span class="badge bg-primary">Pending Verifications: {{ pending_ads.count }}</span>
+        </div>
+
+        {% if pending_ads %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Payment Verification</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business Name</th>
+                                <th>Amount</th>
+                                <th>Last 4 UPI</th>
+                                <th>Employee</th>
+                                <th>Entry Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in pending_ads %}
+                            <tr>
+                                <td>{{ ad.ad_name }}</td>
+                                <td>{{ ad.business_name }}</td>
+                                <td>₹{{ ad.amount }}</td>
+                                <td>{{ ad.upi_last_four }}</td>
+                                <td>{{ ad.user.username }}</td>
+                                <td>{{ ad.entry_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-check-circle"></i> Verify
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> No pending payment verifications!
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
