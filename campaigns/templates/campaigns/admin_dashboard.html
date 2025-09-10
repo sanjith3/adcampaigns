@@ -65,6 +65,7 @@
                             <tr>
                                 <th>Ad Name</th>
                                 <th>Business</th>
+                                <th>Mobile Number</th>
                                 <th>Status</th>
                                 <th>Amount</th>
                                 <th>Employee</th>
@@ -79,6 +80,7 @@
                             <tr>
                                 <td>{{ ad.ad_name }}</td>
                                 <td>{{ ad.business_name }}</td>
+                                <td>{{ ad.mobile_number }}</td>
                                 <td>
                                     <span class="badge bg-{{ ad.get_status_display_class }}">
                                         {{ ad.get_status_display }}

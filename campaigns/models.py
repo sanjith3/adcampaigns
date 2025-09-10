@@ -29,6 +29,7 @@ class AdRecord(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ad_records')
     ad_name = models.CharField(max_length=200)
     business_name = models.CharField(max_length=200)
+    mobile_number = models.CharField(max_length=10, blank=True)
     notes = models.TextField(blank=True)
 
     entry_date = models.DateTimeField(auto_now_add=True)

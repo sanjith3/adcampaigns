@@ -7,12 +7,24 @@ from .models import AdRecord
 class AdRecordForm(forms.ModelForm):
     class Meta:
         model = AdRecord
-        fields = ['ad_name', 'business_name', 'notes']
+        fields = ['ad_name', 'business_name', 'mobile_number', 'notes']
         widgets = {
             'ad_name': forms.TextInput(attrs={'class': 'form-control'}),
             'business_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mobile_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '10',
+                'pattern': '[0-9]{10}',
+                'title': 'Enter 10 digit mobile number'
+            }),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def clean_mobile_number(self):
+        mobile = self.cleaned_data.get('mobile_number', '').strip()
+        if mobile and (not mobile.isdigit() or len(mobile) != 10):
+            raise forms.ValidationError('Enter a valid 10 digit mobile number')
+        return mobile
 
 
 class PaymentDetailsForm(forms.ModelForm):
