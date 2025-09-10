@@ -1,6 +1,6 @@
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
+from django.db import models #type: ignore
+from django.contrib.auth.models import User #type: ignore
+from django.utils import timezone #type: ignore
 from datetime import timedelta
 
 
@@ -26,7 +26,7 @@ class AdRecord(models.Model):
         6000: 30
     }
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ad_records')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ad_records')
     ad_name = models.CharField(max_length=200)
     business_name = models.CharField(max_length=200)
     notes = models.TextField(blank=True)

@@ -5,9 +5,11 @@
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>My Ad Campaigns</h1>
+            {% if not user.is_superuser %}
             <a href="{% url 'create_ad' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> New Ad Enquiry
             </a>
+            {% endif %}
         </div>
 
         <!-- Follow-up Required Section -->
@@ -34,12 +36,14 @@
                                 <td>{{ ad.business_name }}</td>
                                 <td>{{ ad.end_date }}</td>
                                 <td>
+                                    {% if not user.is_superuser %}
                                     <form method="post" action="{% url 'renew_ad' ad.id %}" class="d-inline">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-sync"></i> Renew
                                         </button>
                                     </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -146,9 +150,11 @@
                                 <td>{{ ad.entry_date|date:"M d, Y" }}</td>
                                 <td>{{ ad.notes|truncatewords:10 }}</td>
                                 <td>
+                                    {% if not user.is_superuser %}
                                     <a href="{% url 'add_payment' ad.id %}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-credit-card"></i> Add Payment
                                     </a>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
