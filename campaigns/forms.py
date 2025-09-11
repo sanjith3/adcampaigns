@@ -47,7 +47,7 @@ class AdminVerificationForm(forms.Form):
         max_length=50,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter full UPI ID from payment gateway'
+            'placeholder': 'Enter Last 4 Digits of UPI ID'
         })
     )
 
