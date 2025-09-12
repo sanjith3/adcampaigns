@@ -1,10 +1,11 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.http import JsonResponse
-from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404 #type: ignore
+from django.contrib.auth.decorators import login_required, user_passes_test #type: ignore
+from django.contrib import messages #type: ignore
+from django.http import JsonResponse #type: ignore
+from django.db import transaction #type: ignore
 from .models import AdRecord
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm
+from django.contrib.auth.models import User #type: ignore
 
 
 def is_admin(user):
@@ -13,6 +14,10 @@ def is_admin(user):
 
 @login_required
 def dashboard(request):
+    # Redirect admins to admin dashboard by default
+    if request.user.is_superuser:
+        return redirect('admin_dashboard')
+
     user_ads = AdRecord.objects.filter(user=request.user)
 
     # Separate ads by status for different sections
@@ -34,6 +39,10 @@ def dashboard(request):
 
 @login_required
 def create_ad(request):
+    # Prevent admins from creating enquiries
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot create enquiries. Use the admin dashboard to view records.')
+        return redirect('admin_dashboard')
     if request.method == 'POST':
         form = AdRecordForm(request.POST)
         if form.is_valid():
@@ -50,6 +59,10 @@ def create_ad(request):
 
 @login_required
 def add_payment_details(request, ad_id):
+    # Prevent admins from adding payment details
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot add payment details for enquiries.')
+        return redirect('admin_dashboard')
     ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='enquiry')
 
     if request.method == 'POST':
@@ -144,6 +157,10 @@ def activate_ad(request, ad_id):
 
 @login_required
 def renew_ad(request, ad_id):
+    # Prevent admins from renewing enquiries
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot renew enquiries.')
+        return redirect('admin_dashboard')
     original_ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='completed')
 
     # Create a new enquiry based on the completed ad
@@ -158,3 +175,49 @@ def renew_ad(request, ad_id):
 
     messages.success(request, 'Ad renewed successfully! New enquiry created.')
     return redirect('dashboard')
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_users(request):
+    # List users and handle creation
+    users = User.objects.order_by('username')
+
+    if request.method == 'POST':
+        form = AdminCreateUserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'User created successfully.')
+            return redirect('admin_users')
+    else:
+        form = AdminCreateUserForm()
+
+    context = {
+        'users': users,
+        'form': form,
+    }
+    return render(request, 'campaigns/admin_users.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_delete_user(request, user_id):
+    # Only accept POST deletes and protect against self-deletion of the only superuser
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('admin_users')
+
+    user = get_object_or_404(User, id=user_id)
+
+    if user == request.user:
+        messages.error(request, 'You cannot delete your own account while logged in.')
+        return redirect('admin_users')
+
+    # Prevent deleting the last superuser account
+    if user.is_superuser and User.objects.filter(is_superuser=True).count() <= 1:
+        messages.error(request, 'Cannot delete the last admin account.')
+        return redirect('admin_users')
+
+    user.delete()
+    messages.success(request, 'User deleted successfully.')
+    return redirect('admin_users')

@@ -1,16 +1,30 @@
-from django import forms
+from django import forms #type: ignore
+from django.contrib.auth.forms import UserCreationForm #type: ignore
+from django.contrib.auth.models import User #type: ignore
 from .models import AdRecord
 
 
 class AdRecordForm(forms.ModelForm):
     class Meta:
         model = AdRecord
-        fields = ['ad_name', 'business_name', 'notes']
+        fields = ['ad_name', 'business_name', 'mobile_number', 'notes']
         widgets = {
             'ad_name': forms.TextInput(attrs={'class': 'form-control'}),
             'business_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mobile_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '10',
+                'pattern': '[0-9]{10}',
+                'title': 'Enter 10 digit mobile number'
+            }),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def clean_mobile_number(self):
+        mobile = self.cleaned_data.get('mobile_number', '').strip()
+        if mobile and (not mobile.isdigit() or len(mobile) != 10):
+            raise forms.ValidationError('Enter a valid 10 digit mobile number')
+        return mobile
 
 
 class PaymentDetailsForm(forms.ModelForm):
@@ -33,7 +47,7 @@ class AdminVerificationForm(forms.Form):
         max_length=50,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter full UPI ID from payment gateway'
+            'placeholder': 'Enter Last 4 Digits of UPI ID'
         })
     )
 
@@ -54,3 +68,28 @@ class ActivateAdForm(forms.ModelForm):
                 'type': 'date'
             }),
         }
+
+
+class AdminCreateUserForm(UserCreationForm):
+    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    first_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # Ensure created users are not admins by default
+        user.is_staff = False
+        user.is_superuser = False
+        if commit:
+            user.save()
+        return user

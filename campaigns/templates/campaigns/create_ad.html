@@ -26,6 +26,14 @@
                         <div class="text-danger">{{ form.business_name.errors }}</div>
                         {% endif %}
                     </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.mobile_number.id_for_label }}" class="form-label">Mobile Number</label>
+                        {{ form.mobile_number }}
+                        {% if form.mobile_number.errors %}
+                        <div class="text-danger">{{ form.mobile_number.errors }}</div>
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
                         <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
