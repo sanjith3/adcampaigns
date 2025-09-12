@@ -58,6 +58,7 @@
                                 <th>Username</th>
                                 <th>Name</th>
                                 <th>Email</th>
+                                <!-- <th>Password (hash)</th> -->
                                 <th>Role</th>
                                 <th>Actions</th>
                             </tr>
@@ -83,6 +84,9 @@
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
                                     </form>
+                                    <a href="{% url 'admin_set_password' u.id %}" class="btn btn-sm btn-outline-primary ms-1">
+                                        <i class="fas fa-key"></i> Set password
+                                    </a>
                                     {% else %}
                                     <span class="text-muted">Current user</span>
                                     {% endif %}

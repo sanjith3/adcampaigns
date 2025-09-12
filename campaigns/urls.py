@@ -13,4 +13,5 @@ urlpatterns = [
     path('activate-ad/<int:ad_id>/', views.activate_ad, name='activate_ad'),
     path('admin-users/', views.admin_users, name='admin_users'),
     path('admin-users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
+    path('admin-users/<int:user_id>/set-password/', views.admin_set_password, name='admin_set_password'),
 ]

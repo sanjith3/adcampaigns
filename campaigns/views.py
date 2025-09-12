@@ -4,12 +4,23 @@ from django.contrib import messages #type: ignore
 from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
 from .models import AdRecord
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
 from django.contrib.auth.models import User #type: ignore
+from django.contrib.auth.views import LoginView #type: ignore
+from django.contrib.auth import logout #type: ignore
 
 
 def is_admin(user):
     return user.is_superuser
+
+
+class AlwaysLoginView(LoginView):
+    redirect_authenticated_user = True
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            logout(request)
+        return super().dispatch(request, *args, **kwargs)
 
 
 @login_required
@@ -221,3 +232,21 @@ def admin_delete_user(request, user_id):
     user.delete()
     messages.success(request, 'User deleted successfully.')
     return redirect('admin_users')
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_set_password(request, user_id):
+    target_user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        form = AdminSetPasswordForm(request.POST)
+        if form.is_valid():
+            new_password = form.cleaned_data['new_password1']
+            target_user.set_password(new_password)
+            target_user.save()
+            messages.success(request, f"Password updated for {target_user.username}.")
+            return redirect('admin_users')
+    else:
+        form = AdminSetPasswordForm()
+
+    return render(request, 'campaigns/admin_set_password.html', {'form': form, 'target_user': target_user})

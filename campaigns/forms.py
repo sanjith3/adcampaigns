@@ -93,3 +93,24 @@ class AdminCreateUserForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class AdminSetPasswordForm(forms.Form):
+    new_password1 = forms.CharField(
+        label="New password",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+    new_password2 = forms.CharField(
+        label="Confirm new password",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get('new_password1')
+        p2 = cleaned_data.get('new_password2')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError("Passwords do not match")
+        if p1 and len(p1) < 8:
+            raise forms.ValidationError("Password must be at least 8 characters long")
+        return cleaned_data

@@ -26,6 +26,8 @@ SECRET_KEY = 'django-insecure-vmkxe%v+n%+9ds0(33e02ork$5h&!3tg-_-zj8-nl1xja9&%h*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 ALLOWED_HOSTS = ["*","localhost"]
 
 
@@ -120,7 +122,7 @@ STATIC_URL = 'static/'
 
 
 # Add login redirect
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/login/'
 
 # Default primary key field type
