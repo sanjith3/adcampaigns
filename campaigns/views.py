@@ -4,15 +4,11 @@ from django.contrib import messages #type: ignore
 from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
 from .models import AdRecord
-<<<<<<< HEAD
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
 from datetime import date
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm
-=======
 from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
->>>>>>> 741200feda42449ab7e0dec2178840979c82b3eb
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
