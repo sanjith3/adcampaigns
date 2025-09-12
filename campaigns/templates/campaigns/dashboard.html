@@ -4,21 +4,39 @@
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>My Ad Campaigns</h1>
-            {% if not user.is_superuser %}
-            <a href="{% url 'create_ad' %}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> New Ad Enquiry
-            </a>
-            {% endif %}
+            <h1>
+                {% if show_follow %}
+                    <i class="fas fa-bell"></i> Follow-up List
+                {% else %}
+                    My Ad Campaigns
+                {% endif %}
+            </h1>
+            <div class="d-flex gap-2">
+                {% if not user.is_superuser %}
+                <a href="{% url 'create_ad' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Ad Enquiry
+                </a>
+                {% endif %}
+                {% if show_follow %}
+                    <a href="?" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> Back to Dashboard
+                    </a>
+                {% else %}
+                    <a href="?view=follow" class="btn btn-primary">
+                        <i class="fas fa-bell"></i> Follow-up
+                    </a>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- Follow-up Required Section -->
-        {% if follow_up_ads %}
+        {% if show_follow %}
+        <!-- Follow-up Only View -->
         <div class="card mb-4 border-warning">
             <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-bell"></i> Follow-up Required</h5>
+                <h5 class="mb-0"><i class="fas fa-bell"></i> Follow-up Required ({{ follow_up_ads.count }})</h5>
             </div>
             <div class="card-body">
+                {% if follow_up_ads %}
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
@@ -38,23 +56,23 @@
                                 <td>{{ ad.mobile_number }}</td>
                                 <td>{{ ad.end_date }}</td>
                                 <td>
-                                    {% if not user.is_superuser %}
-                                    <form method="post" action="{% url 'renew_ad' ad.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-sync"></i> Renew
-                                        </button>
-                                    </form>
-                                    {% endif %}
+                                    <a href="{% url 'renew_ad' ad.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-sync"></i> Renew
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No follow-ups needed.
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
+        {% else %}
 
         <!-- Active Ads -->
         {% if active_ads %}
@@ -208,6 +226,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
         {% endif %}
     </div>
 </div>
