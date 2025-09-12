@@ -4,6 +4,10 @@ from django.contrib import messages #type: ignore
 from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
 from .models import AdRecord
+from django.utils import timezone #type: ignore
+from django.db.models import Count, Sum #type: ignore
+from django.db.models.functions import Coalesce #type: ignore
+from datetime import date
 from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm
 from django.contrib.auth.models import User #type: ignore
 
@@ -29,6 +33,43 @@ def dashboard(request):
     completed_ads = user_ads.filter(status='completed')
     follow_up_ads = completed_ads.filter(renewals__isnull=True)
 
+    # Daily stats for active campaigns (active today)
+    today = timezone.now().date()
+    active_today_qs = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today)
+    daily_stats = active_today_qs.aggregate(
+        count=Count('id'),
+        total_amount=Coalesce(Sum('amount'), 0)
+    )
+
+    # Date range stats (optional, when start/end provided)
+    start_str = request.GET.get('start')
+    end_str = request.GET.get('end')
+    range_count = None
+    range_amount = None
+    range_start = None
+    range_end = None
+    try:
+        if start_str:
+            range_start = date.fromisoformat(start_str)
+        if end_str:
+            range_end = date.fromisoformat(end_str)
+    except ValueError:
+        range_start = None
+        range_end = None
+
+    if range_start and range_end:
+        range_qs = user_ads.filter(
+            status='active',
+            start_date__gte=range_start,
+            end_date__lte=range_end
+        )
+        range_stats = range_qs.aggregate(
+            count=Count('id'),
+            total_amount=Coalesce(Sum('amount'), 0)
+        )
+        range_count = range_stats['count']
+        range_amount = range_stats['total_amount']
+
     context = {
         'enquiries': enquiries,
         'pending_ads': pending_ads,
@@ -36,6 +77,12 @@ def dashboard(request):
         'completed_ads': completed_ads,
         'follow_up_ads': follow_up_ads,
         'show_follow': show_follow,
+        'stats_active_today_count': daily_stats['count'],
+        'stats_active_today_amount': daily_stats['total_amount'],
+        'stats_range_count': range_count,
+        'stats_range_amount': range_amount,
+        'stats_range_start': start_str or '',
+        'stats_range_end': end_str or '',
     }
     return render(request, 'campaigns/dashboard.html', context)
 

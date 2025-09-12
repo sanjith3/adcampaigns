@@ -29,6 +29,54 @@
             </div>
         </div>
 
+        {% if not show_follow %}
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-white bg-success">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ stats_active_today_count }}</h5>
+                        <p class="card-text mb-0">Active Today</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">₹{{ stats_active_today_amount }}</h5>
+                        <p class="card-text mb-0">Amount Total (Today)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-2 align-items-end">
+                            <div class="col-5">
+                                <label class="form-label">Start date</label>
+                                <input type="date" name="start" value="{{ stats_range_start }}" class="form-control" />
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">End date</label>
+                                <input type="date" name="end" value="{{ stats_range_end }}" class="form-control" />
+                            </div>
+                            <div class="col-2 d-grid">
+                                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                            </div>
+                            {% if stats_range_count != None %}
+                            <div class="col-12 mt-2">
+                                <div class="alert alert-info py-2 mb-0">
+                                    <strong>{{ stats_range_count }}</strong> active in range, total <strong>₹{{ stats_range_amount }}</strong>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if show_follow %}
         <!-- Follow-up Only View -->
         <div class="card mb-4 border-warning">
