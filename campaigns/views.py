@@ -29,6 +29,8 @@ def dashboard(request):
     if request.user.is_superuser:
         return redirect('admin_dashboard')
 
+    show_follow = request.GET.get('view') == 'follow'
+
     user_ads = AdRecord.objects.filter(user=request.user)
 
     # Separate ads by status for different sections
@@ -44,6 +46,7 @@ def dashboard(request):
         'active_ads': active_ads,
         'completed_ads': completed_ads,
         'follow_up_ads': follow_up_ads,
+        'show_follow': show_follow,
     }
     return render(request, 'campaigns/dashboard.html', context)
 
@@ -95,6 +98,7 @@ def add_payment_details(request, ad_id):
 def admin_dashboard(request):
     # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
+    show_follow = request.GET.get('view') == 'follow'
 
     all_ads = AdRecord.objects.all().order_by('-entry_date')
 
@@ -110,11 +114,16 @@ def admin_dashboard(request):
         'completed': AdRecord.objects.filter(status='completed').count(),
     }
 
+    # Follow-up ads: completed ads that do not have any renewals yet
+    follow_up_ads = AdRecord.objects.filter(status='completed', renewals__isnull=True).order_by('-end_date')
+
     context = {
         'all_ads': all_ads,
         'status_filter': status_filter,
         'status_counts': status_counts,
         'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
+        'show_follow': show_follow,
+        'follow_up_ads': follow_up_ads,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 
@@ -172,20 +181,36 @@ def renew_ad(request, ad_id):
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot renew enquiries.')
         return redirect('admin_dashboard')
+
     original_ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='completed')
 
-    # Create a new enquiry based on the completed ad
-    new_ad = AdRecord(
-        user=request.user,
-        ad_name=original_ad.ad_name,
-        business_name=original_ad.business_name,
-        notes=f"Renewal of {original_ad.ad_name}. Previous notes: {original_ad.notes}",
-        renewed_from=original_ad
-    )
-    new_ad.save()
+    if request.method == 'POST':
+        form = PaymentDetailsForm(request.POST)
+        if form.is_valid():
+            # Create a new pending ad based on the completed ad with provided payment details
+            new_ad = AdRecord(
+                user=request.user,
+                ad_name=original_ad.ad_name,
+                business_name=original_ad.business_name,
+                mobile_number=original_ad.mobile_number,
+                notes=f"Renewal of {original_ad.ad_name}. Previous notes: {original_ad.notes}",
+                renewed_from=original_ad,
+                status='pending',
+                amount=form.cleaned_data['amount'],
+                upi_last_four=form.cleaned_data['upi_last_four']
+            )
+            new_ad.save()
 
-    messages.success(request, 'Ad renewed successfully! New enquiry created.')
-    return redirect('dashboard')
+            messages.success(request, 'Renewal submitted! Waiting for admin verification.')
+            return redirect('dashboard')
+    else:
+        form = PaymentDetailsForm()
+
+    context = {
+        'form': form,
+        'original_ad': original_ad,
+    }
+    return render(request, 'campaigns/renew_ad.html', context)
 
 
 @login_required

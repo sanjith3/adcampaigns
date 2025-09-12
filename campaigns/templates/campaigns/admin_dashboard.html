@@ -4,8 +4,14 @@
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
-            <div>
+            <h1>
+                {% if show_follow %}
+                    <i class="fas fa-bell"></i> Follow-up List
+                {% else %}
+                    <i class="fas fa-shield-alt"></i> Admin Dashboard
+                {% endif %}
+            </h1>
+            <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary me-2">Total Ads: {{ status_counts.all }}</span>
                 <span class="badge bg-secondary me-2">Enquiries: {{ status_counts.enquiry }}</span>
                 <span class="badge bg-warning me-2">Pending: {{ status_counts.pending }}</span>
@@ -14,11 +20,73 @@
             </div>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3 d-flex gap-2">
             <a href="{% url 'admin_users' %}" class="btn btn-outline-dark">
                 <i class="fas fa-users"></i> Manage Users
             </a>
+            {% if show_follow %}
+                <a href="?status={{ status_filter }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line"></i> Back to Dashboard
+                </a>
+            {% else %}
+                <a href="?status={{ status_filter }}&view=follow" class="btn btn-primary">
+                    <i class="fas fa-bell"></i> Follow-up
+                </a>
+            {% endif %}
         </div>
+
+        {% if show_follow %}
+        <!-- Follow-up Table Only View -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-bell"></i> Follow-up Needed ({{ follow_up_ads.count }})</h5>
+            </div>
+            <div class="card-body">
+                {% if follow_up_ads %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business</th>
+                                <th>Employee</th>
+                                <th>Completed On</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in follow_up_ads %}
+                            <tr>
+                                <td>{{ ad.ad_name }}</td>
+                                <td>{{ ad.business_name }}</td>
+                                <td>
+                                    {% if ad.user %}
+                                        {{ ad.user.get_full_name|default:ad.user.username }}
+                                    {% else %}
+                                        <span class="text-muted">(deleted user)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.end_date %}
+                                        {{ ad.end_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ ad.notes|default:"No notes" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No follow-ups needed.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
 
         <!-- Status Filter Buttons -->
         <div class="card mb-4">
@@ -286,6 +354,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
