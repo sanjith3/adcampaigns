@@ -1,5 +1,2 @@
 django
-channels
-django-eventstream
 djangorestframework
-daphne

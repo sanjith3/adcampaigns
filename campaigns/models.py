@@ -2,9 +2,6 @@ from django.db import models #type: ignore
 from django.contrib.auth.models import User #type: ignore
 from django.utils import timezone #type: ignore
 from datetime import timedelta
-from django.db.models.signals import post_save, post_delete #type: ignore
-from django.dispatch import receiver #type: ignore
-from django_eventstream import eventstream    #type: ignore
 
 
 class AdRecord(models.Model):
@@ -76,11 +73,3 @@ class AdRecord(models.Model):
     def get_duration_days(self):
         """Get the duration in days based on amount"""
         return self.AMOUNT_DAYS_MAPPING.get(self.amount, 0)
-
-@receiver(post_save, sender=AdRecord)
-def send_reload_on_save(sender, instance, **kwargs):
-    eventstream.send_event('general', 'message', {'type': 'reload'})
-
-@receiver(post_delete, sender=AdRecord)
-def send_reload_on_delete(sender, instance, **kwargs):
-    eventstream.send_event('general', 'message', {'type': 'reload'})

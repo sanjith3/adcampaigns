@@ -47,18 +47,5 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const eventSource = new EventSource('/events/?channel=general');
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'reload') {
-                window.location.reload();
-            }
-        };
-        eventSource.onerror = function(err) {
-            console.error('EventSource failed:', err);
-            eventSource.close();
-        };
-    </script>
 </body>
 </html>

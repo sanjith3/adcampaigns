@@ -22,9 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
     'campaigns',
-    'django_eventstream',  # Correct package name
 ]
 
 MIDDLEWARE = [
@@ -35,7 +33,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_grip.GripMiddleware',  # Required for django_eventstream
 ]
 
 ROOT_URLCONF = 'adsoft.urls'
@@ -56,13 +53,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'adsoft.wsgi.application'
-ASGI_APPLICATION = 'adsoft.asgi.application'  # Required for Channels and EventStream
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
 
 # Database
 DATABASES = {
@@ -103,7 +93,3 @@ LOGIN_URL = '/login/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Django EventStream settings
-EVENTSTREAM_ALLOW_EXTERNAL_ORIGIN = True
-EVENTSTREAM_STORAGE_CLASS = 'django_eventstream.storage.DjangoModelStorage'
