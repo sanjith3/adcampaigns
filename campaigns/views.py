@@ -7,7 +7,7 @@ from .models import AdRecord
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
-from datetime import date
+from datetime import date, timedelta
 from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
@@ -55,24 +55,21 @@ def dashboard(request):
     # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
+    quick_filter = request.GET.get('quick_filter')
     range_count = None
     range_amount = None
     range_start = None
     range_end = None
-    try:
-        if start_str:
-            range_start = date.fromisoformat(start_str)
-        if end_str:
-            range_end = date.fromisoformat(end_str)
-    except ValueError:
-        range_start = None
-        range_end = None
-
-    if range_start and range_end:
+    
+    # Quick filter for yesterday/before yesterday
+    yesterday = None
+    before_yesterday = None
+    if quick_filter == 'yesterday':
+        yesterday = today - timedelta(days=1)
         range_qs = user_ads.filter(
             status='active',
-            start_date__gte=range_start,
-            end_date__lte=range_end
+            start_date__lte=yesterday,
+            end_date__gte=yesterday
         )
         range_stats = range_qs.aggregate(
             count=Count('id'),
@@ -80,6 +77,41 @@ def dashboard(request):
         )
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
+    elif quick_filter == 'before_yesterday':
+        before_yesterday = today - timedelta(days=2)
+        range_qs = user_ads.filter(
+            status='active',
+            start_date__lte=before_yesterday,
+            end_date__gte=before_yesterday
+        )
+        range_stats = range_qs.aggregate(
+            count=Count('id'),
+            total_amount=Coalesce(Sum('amount'), 0)
+        )
+        range_count = range_stats['count']
+        range_amount = range_stats['total_amount']
+    else:
+        try:
+            if start_str:
+                range_start = date.fromisoformat(start_str)
+            if end_str:
+                range_end = date.fromisoformat(end_str)
+        except ValueError:
+            range_start = None
+            range_end = None
+
+        if range_start and range_end:
+            range_qs = user_ads.filter(
+                status='active',
+                start_date__gte=range_start,
+                end_date__lte=range_end
+            )
+            range_stats = range_qs.aggregate(
+                count=Count('id'),
+                total_amount=Coalesce(Sum('amount'), 0)
+            )
+            range_count = range_stats['count']
+            range_amount = range_stats['total_amount']
 
     context = {
         'enquiries': enquiries,
@@ -94,6 +126,9 @@ def dashboard(request):
         'stats_range_amount': range_amount,
         'stats_range_start': start_str or '',
         'stats_range_end': end_str or '',
+        'quick_filter': quick_filter,
+        'yesterday': yesterday,
+        'before_yesterday': before_yesterday,
     }
     return render(request, 'campaigns/dashboard.html', context)
 
@@ -207,6 +242,8 @@ def admin_dashboard(request):
     completed_history = None
     history_start_date = None
     history_end_date = None
+    quick_filter = request.GET.get('quick_filter')
+    
     try:
         if history_start:
             history_start_date = date.fromisoformat(history_start)
@@ -216,7 +253,23 @@ def admin_dashboard(request):
         history_start_date = None
         history_end_date = None
 
-    if history_start_date and history_end_date:
+    # Quick filter for yesterday/before yesterday - show active campaigns that were running on those days
+    active_history = None
+    if quick_filter == 'yesterday':
+        yesterday = today - timedelta(days=1)
+        active_history = AdRecord.objects.filter(
+            status='active',
+            start_date__lte=yesterday,
+            end_date__gte=yesterday
+        ).order_by('-start_date')
+    elif quick_filter == 'before_yesterday':
+        before_yesterday = today - timedelta(days=2)
+        active_history = AdRecord.objects.filter(
+            status='active',
+            start_date__lte=before_yesterday,
+            end_date__gte=before_yesterday
+        ).order_by('-start_date')
+    elif history_start_date and history_end_date:
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date__gte=history_start_date,
@@ -237,8 +290,10 @@ def admin_dashboard(request):
         'stats_range_start': start_str or '',
         'stats_range_end': end_str or '',
         'completed_history': completed_history,
+        'active_history': active_history,
         'history_start': history_start or '',
         'history_end': history_end or '',
+        'quick_filter': quick_filter,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 

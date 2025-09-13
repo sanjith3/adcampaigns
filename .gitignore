@@ -3,3 +3,5 @@ __pycache__/
 *.py[cod]
 *.class
 db.sqlite3
+/campaigns/__pycache__/
+/adsoft/__pycache__/
