@@ -55,63 +55,31 @@ def dashboard(request):
     # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
-    quick_filter = request.GET.get('quick_filter')
     range_count = None
     range_amount = None
     range_start = None
     range_end = None
-    
-    # Quick filter for yesterday/before yesterday
-    yesterday = None
-    before_yesterday = None
-    if quick_filter == 'yesterday':
-        yesterday = today - timedelta(days=1)
-        range_qs = user_ads.filter(
-            status='active',
-            start_date__lte=yesterday,
-            end_date__gte=yesterday
-        )
-        range_stats = range_qs.aggregate(
-            count=Count('id'),
-            total_amount=Coalesce(Sum('amount'), 0)
-        )
-        range_count = range_stats['count']
-        range_amount = range_stats['total_amount']
-    elif quick_filter == 'before_yesterday':
-        before_yesterday = today - timedelta(days=2)
-        range_qs = user_ads.filter(
-            status='active',
-            start_date__lte=before_yesterday,
-            end_date__gte=before_yesterday
-        )
-        range_stats = range_qs.aggregate(
-            count=Count('id'),
-            total_amount=Coalesce(Sum('amount'), 0)
-        )
-        range_count = range_stats['count']
-        range_amount = range_stats['total_amount']
-    else:
-        try:
-            if start_str:
-                range_start = date.fromisoformat(start_str)
-            if end_str:
-                range_end = date.fromisoformat(end_str)
-        except ValueError:
-            range_start = None
-            range_end = None
+    try:
+        if start_str:
+            range_start = date.fromisoformat(start_str)
+        if end_str:
+            range_end = date.fromisoformat(end_str)
+    except ValueError:
+        range_start = None
+        range_end = None
 
-        if range_start and range_end:
-            range_qs = user_ads.filter(
-                status='active',
-                start_date__gte=range_start,
-                end_date__lte=range_end
-            )
-            range_stats = range_qs.aggregate(
-                count=Count('id'),
-                total_amount=Coalesce(Sum('amount'), 0)
-            )
-            range_count = range_stats['count']
-            range_amount = range_stats['total_amount']
+    if range_start and range_end:
+        range_qs = user_ads.filter(
+            status='active',
+            start_date__gte=range_start,
+            end_date__lte=range_end
+        )
+        range_stats = range_qs.aggregate(
+            count=Count('id'),
+            total_amount=Coalesce(Sum('amount'), 0)
+        )
+        range_count = range_stats['count']
+        range_amount = range_stats['total_amount']
 
     context = {
         'enquiries': enquiries,
@@ -126,9 +94,6 @@ def dashboard(request):
         'stats_range_amount': range_amount,
         'stats_range_start': start_str or '',
         'stats_range_end': end_str or '',
-        'quick_filter': quick_filter,
-        'yesterday': yesterday,
-        'before_yesterday': before_yesterday,
     }
     return render(request, 'campaigns/dashboard.html', context)
 
@@ -242,8 +207,6 @@ def admin_dashboard(request):
     completed_history = None
     history_start_date = None
     history_end_date = None
-    quick_filter = request.GET.get('quick_filter')
-    
     try:
         if history_start:
             history_start_date = date.fromisoformat(history_start)
@@ -254,6 +217,7 @@ def admin_dashboard(request):
         history_end_date = None
 
     # Quick filter for yesterday/before yesterday - show completed campaigns that finished on those days
+    quick_filter = request.GET.get('quick_filter')
     completed_history = None
     if quick_filter == 'yesterday':
         yesterday = today - timedelta(days=1)
