@@ -146,11 +146,50 @@ def admin_dashboard(request):
     # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
     show_follow = request.GET.get('view') == 'follow'
+    history_start = request.GET.get('history_start')
+    history_end = request.GET.get('history_end')
 
     all_ads = AdRecord.objects.all().order_by('-entry_date')
 
     if status_filter != 'all':
         all_ads = all_ads.filter(status=status_filter)
+
+    # Daily stats for active campaigns (active today)
+    today = timezone.now().date()
+    active_today_qs = AdRecord.objects.filter(status='active', start_date__lte=today, end_date__gte=today)
+    daily_stats = active_today_qs.aggregate(
+        count=Count('id'),
+        total_amount=Coalesce(Sum('amount'), 0)
+    )
+
+    # Date range stats (optional, when start/end provided)
+    start_str = request.GET.get('start')
+    end_str = request.GET.get('end')
+    range_count = None
+    range_amount = None
+    range_start = None
+    range_end = None
+    try:
+        if start_str:
+            range_start = date.fromisoformat(start_str)
+        if end_str:
+            range_end = date.fromisoformat(end_str)
+    except ValueError:
+        range_start = None
+        range_end = None
+
+    if range_start and range_end:
+        range_qs = AdRecord.objects.filter(
+            status='active',
+            start_date__gte=range_start,
+            end_date__lte=range_end
+        )
+        range_stats = range_qs.aggregate(
+            count=Count('id'),
+            total_amount=Coalesce(Sum('amount'), 0)
+        )
+        range_count = range_stats['count']
+        range_amount = range_stats['total_amount']
 
     # Count by status for filters
     status_counts = {
@@ -164,6 +203,26 @@ def admin_dashboard(request):
     # Follow-up ads: completed ads that do not have any renewals yet
     follow_up_ads = AdRecord.objects.filter(status='completed', renewals__isnull=True).order_by('-end_date')
 
+    # Completed history filter
+    completed_history = None
+    history_start_date = None
+    history_end_date = None
+    try:
+        if history_start:
+            history_start_date = date.fromisoformat(history_start)
+        if history_end:
+            history_end_date = date.fromisoformat(history_end)
+    except ValueError:
+        history_start_date = None
+        history_end_date = None
+
+    if history_start_date and history_end_date:
+        completed_history = AdRecord.objects.filter(
+            status='completed',
+            end_date__gte=history_start_date,
+            end_date__lte=history_end_date
+        ).order_by('-end_date')
+
     context = {
         'all_ads': all_ads,
         'status_filter': status_filter,
@@ -171,6 +230,15 @@ def admin_dashboard(request):
         'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
         'show_follow': show_follow,
         'follow_up_ads': follow_up_ads,
+        'stats_active_today_count': daily_stats['count'],
+        'stats_active_today_amount': daily_stats['total_amount'],
+        'stats_range_count': range_count,
+        'stats_range_amount': range_amount,
+        'stats_range_start': start_str or '',
+        'stats_range_end': end_str or '',
+        'completed_history': completed_history,
+        'history_start': history_start or '',
+        'history_end': history_end or '',
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 

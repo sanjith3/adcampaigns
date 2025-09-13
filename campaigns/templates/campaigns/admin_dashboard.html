@@ -35,6 +35,80 @@
             {% endif %}
         </div>
 
+        {% if not show_follow %}
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ stats_active_today_count }}</h5>
+                        <p class="card-text mb-0">Active Today</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">₹{{ stats_active_today_amount }}</h5>
+                        <p class="card-text mb-0">Amount Total (Today)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Active Range Filter</h6>
+                        <form method="get" class="row g-2">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
+                            <div class="col-5">
+                                <input type="date" name="start" value="{{ stats_range_start }}" class="form-control form-control-sm" placeholder="Start" />
+                            </div>
+                            <div class="col-5">
+                                <input type="date" name="end" value="{{ stats_range_end }}" class="form-control form-control-sm" placeholder="End" />
+                            </div>
+                            <div class="col-2 d-grid">
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
+                            </div>
+                            {% if stats_range_count != None %}
+                            <div class="col-12 mt-2">
+                                <div class="alert alert-info py-1 mb-0 small">
+                                    <strong>{{ stats_range_count }}</strong> active in range, total <strong>₹{{ stats_range_amount }}</strong>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Completed History</h6>
+                        <form method="get" class="row g-2">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
+                            <div class="col-5">
+                                <input type="date" name="history_start" value="{{ history_start }}" class="form-control form-control-sm" placeholder="Start" />
+                            </div>
+                            <div class="col-5">
+                                <input type="date" name="history_end" value="{{ history_end }}" class="form-control form-control-sm" placeholder="End" />
+                            </div>
+                            <div class="col-2 d-grid">
+                                <button type="submit" class="btn btn-outline-info btn-sm">Filter</button>
+                            </div>
+                            {% if completed_history %}
+                            <div class="col-12 mt-2">
+                                <div class="alert alert-info py-1 mb-0 small">
+                                    <strong>{{ completed_history.count }}</strong> completed in range
+                                </div>
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if show_follow %}
         <!-- Follow-up Table Only View -->
         <div class="card">
@@ -354,6 +428,75 @@
                 </div>
             </div>
         </div>
+
+        <!-- Completed History Table -->
+        {% if completed_history %}
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Completed History ({{ completed_history.count }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business</th>
+                                <th>Employee</th>
+                                <th>Amount</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in completed_history %}
+                            <tr>
+                                <td>{{ ad.ad_name }}</td>
+                                <td>{{ ad.business_name }}</td>
+                                <td>
+                                    {% if ad.user %}
+                                        {{ ad.user.get_full_name|default:ad.user.username }}
+                                    {% else %}
+                                        <span class="text-muted">(deleted user)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.amount %}
+                                        ₹{{ ad.amount }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.start_date %}
+                                        {{ ad.start_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.end_date %}
+                                        {{ ad.end_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ad.start_date and ad.end_date %}
+                                        {{ ad.get_duration_days }} days
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 </div>
