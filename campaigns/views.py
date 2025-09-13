@@ -7,7 +7,7 @@ from .models import AdRecord
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
-from datetime import date
+from datetime import date, timedelta
 from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
@@ -216,7 +216,22 @@ def admin_dashboard(request):
         history_start_date = None
         history_end_date = None
 
-    if history_start_date and history_end_date:
+    # Quick filter for yesterday/before yesterday - show completed campaigns that finished on those days
+    quick_filter = request.GET.get('quick_filter')
+    completed_history = None
+    if quick_filter == 'yesterday':
+        yesterday = today - timedelta(days=1)
+        completed_history = AdRecord.objects.filter(
+            status='completed',
+            end_date=yesterday
+        ).order_by('-end_date')
+    elif quick_filter == 'before_yesterday':
+        before_yesterday = today - timedelta(days=2)
+        completed_history = AdRecord.objects.filter(
+            status='completed',
+            end_date=before_yesterday
+        ).order_by('-end_date')
+    elif history_start_date and history_end_date:
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date__gte=history_start_date,
@@ -239,6 +254,7 @@ def admin_dashboard(request):
         'completed_history': completed_history,
         'history_start': history_start or '',
         'history_end': history_end or '',
+        'quick_filter': quick_filter,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 

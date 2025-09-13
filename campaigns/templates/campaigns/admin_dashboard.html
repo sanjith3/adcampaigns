@@ -35,6 +35,9 @@
             {% endif %}
         </div>
 
+        <!-- Completed Campaigns History Section - Always Visible -->
+
+
         {% if not show_follow %}
         <!-- Stats Row -->
         <div class="row mb-4">
@@ -77,13 +80,21 @@
                             </div>
                             {% endif %}
                         </form>
+                        <div class="mb-2">
+                            <a href="?status={{ status_filter }}&quick_filter=yesterday" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}">
+                                Yesterday
+                            </a>
+                            <a href="?status={{ status_filter }}&quick_filter=before_yesterday" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}">
+                                Before Yesterday
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
-                        <h6 class="card-title">Completed History</h6>
+                        <h6 class="card-title">Completed Campaigns History</h6>
                         <form method="get" class="row g-2">
                             <input type="hidden" name="status" value="{{ status_filter }}" />
                             <div class="col-5">
@@ -98,7 +109,7 @@
                             {% if completed_history %}
                             <div class="col-12 mt-2">
                                 <div class="alert alert-info py-1 mb-0 small">
-                                    <strong>{{ completed_history.count }}</strong> completed in range
+                                    <strong>{{ completed_history.count }}</strong> campaigns completed in this date range
                                 </div>
                             </div>
                             {% endif %}
@@ -106,6 +117,7 @@
                     </div>
                 </div>
             </div>
+            
         </div>
         {% endif %}
 
@@ -159,6 +171,21 @@
                 </div>
                 {% endif %}
             </div>
+        </div>
+        {% elif completed_history and quick_filter %}
+        <!-- Only show completed history when yesterday/before yesterday filter is used -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Showing campaigns that were <strong>completed</strong> on 
+            {% if quick_filter == 'yesterday' %}
+                yesterday
+            {% elif quick_filter == 'before_yesterday' %}
+                before yesterday
+            {% endif %}
+        </div>
+        {% elif completed_history %}
+        <!-- Only show completed history when date range filter is used -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Showing campaigns that were <strong>completed</strong> between {{ history_start }} and {{ history_end }}
         </div>
         {% else %}
 
@@ -429,11 +456,11 @@
             </div>
         </div>
 
-        <!-- Completed History Table -->
         {% if completed_history %}
+        <!-- Completed History Table -->
         <div class="card mt-4">
             <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-history"></i> Completed History ({{ completed_history.count }})</h5>
+                <h5 class="mb-0"><i class="fas fa-check-circle"></i> Completed Campaigns History ({{ completed_history.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -444,8 +471,8 @@
                                 <th>Business</th>
                                 <th>Employee</th>
                                 <th>Amount</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>Campaign Started</th>
+                                <th>Campaign Ended</th>
                                 <th>Duration</th>
                             </tr>
                         </thead>
