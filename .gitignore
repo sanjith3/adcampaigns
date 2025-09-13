@@ -4,4 +4,8 @@ __pycache__/
 *.class
 db.sqlite3
 /campaigns/__pycache__/
+<<<<<<< HEAD
 /adsoft/__pycache__/
+=======
+/adsoft/__pycache__/
+>>>>>>> a404596972cde3dead0ff3b8edeca001135b21b5
