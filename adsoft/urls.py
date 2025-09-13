@@ -19,6 +19,7 @@ from django.urls import path, include #type: ignore
 from django.contrib.auth import views as auth_views #type: ignore
 from django.views.generic import RedirectView #type: ignore
 from campaigns.views import AlwaysLoginView #type: ignore
+from django_eventstream import eventstream #type: ignore
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,4 +27,5 @@ urlpatterns = [
     path('dashboard/', include('campaigns.urls')),
     path('login/', AlwaysLoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
+    path('events/', include('django_eventstream.urls'))
 ]
