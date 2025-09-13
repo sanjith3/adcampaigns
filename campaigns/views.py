@@ -253,22 +253,20 @@ def admin_dashboard(request):
         history_start_date = None
         history_end_date = None
 
-    # Quick filter for yesterday/before yesterday - show active campaigns that were running on those days
-    active_history = None
+    # Quick filter for yesterday/before yesterday - show completed campaigns that finished on those days
+    completed_history = None
     if quick_filter == 'yesterday':
         yesterday = today - timedelta(days=1)
-        active_history = AdRecord.objects.filter(
-            status='active',
-            start_date__lte=yesterday,
-            end_date__gte=yesterday
-        ).order_by('-start_date')
+        completed_history = AdRecord.objects.filter(
+            status='completed',
+            end_date=yesterday
+        ).order_by('-end_date')
     elif quick_filter == 'before_yesterday':
         before_yesterday = today - timedelta(days=2)
-        active_history = AdRecord.objects.filter(
-            status='active',
-            start_date__lte=before_yesterday,
-            end_date__gte=before_yesterday
-        ).order_by('-start_date')
+        completed_history = AdRecord.objects.filter(
+            status='completed',
+            end_date=before_yesterday
+        ).order_by('-end_date')
     elif history_start_date and history_end_date:
         completed_history = AdRecord.objects.filter(
             status='completed',
@@ -290,7 +288,6 @@ def admin_dashboard(request):
         'stats_range_start': start_str or '',
         'stats_range_end': end_str or '',
         'completed_history': completed_history,
-        'active_history': active_history,
         'history_start': history_start or '',
         'history_end': history_end or '',
         'quick_filter': quick_filter,
