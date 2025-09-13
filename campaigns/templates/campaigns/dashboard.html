@@ -22,8 +22,14 @@
                         <i class="fas fa-chart-line"></i> Back to Dashboard
                     </a>
                 {% else %}
-                    <a href="?view=follow" class="btn btn-primary">
+                    <a href="?view=follow" class="btn btn-primary position-relative">
                         <i class="fas fa-bell"></i> Follow-up
+                        {% if follow_up_ads.count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ follow_up_ads.count }}
+                                <span class="visually-hidden">follow-ups needed</span>
+                            </span>
+                        {% endif %}
                     </a>
                 {% endif %}
             </div>
@@ -51,6 +57,15 @@
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
+                        <h6 class="card-title">Active Campaign History</h6>
+                        <div class="mb-2">
+                            <a href="?quick_filter=yesterday" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}">
+                                Yesterday
+                            </a>
+                            <a href="?quick_filter=before_yesterday" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}">
+                                Before Yesterday
+                            </a>
+                        </div>
                         <form method="get" class="row g-2 align-items-end">
                             <div class="col-5">
                                 <label class="form-label">Start date</label>
@@ -235,6 +250,72 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active Campaign History Table -->
+        {% if quick_filter == 'yesterday' or quick_filter == 'before_yesterday' %}
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-play-circle"></i> 
+                    {% if quick_filter == 'yesterday' %}
+                        Active Campaigns Yesterday
+                    {% elif quick_filter == 'before_yesterday' %}
+                        Active Campaigns Before Yesterday
+                    {% endif %}
+                    ({{ stats_range_count }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if stats_range_count > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business Name</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Amount</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in active_ads %}
+                                {% if quick_filter == 'yesterday' %}
+                                    {% if ad.start_date <= yesterday and ad.end_date >= yesterday %}
+                                    <tr>
+                                        <td>{{ ad.ad_name }}</td>
+                                        <td>{{ ad.business_name }}</td>
+                                        <td>{{ ad.start_date|date:"M d, Y" }}</td>
+                                        <td>{{ ad.end_date|date:"M d, Y" }}</td>
+                                        <td>₹{{ ad.amount }}</td>
+                                        <td>{{ ad.get_duration_days }} days</td>
+                                    </tr>
+                                    {% endif %}
+                                {% elif quick_filter == 'before_yesterday' %}
+                                    {% if ad.start_date <= before_yesterday and ad.end_date >= before_yesterday %}
+                                    <tr>
+                                        <td>{{ ad.ad_name }}</td>
+                                        <td>{{ ad.business_name }}</td>
+                                        <td>{{ ad.start_date|date:"M d, Y" }}</td>
+                                        <td>{{ ad.end_date|date:"M d, Y" }}</td>
+                                        <td>₹{{ ad.amount }}</td>
+                                        <td>{{ ad.get_duration_days }} days</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No active campaigns found for this date.
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
