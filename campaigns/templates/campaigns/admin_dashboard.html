@@ -302,6 +302,9 @@
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
                                         <i class="fas fa-eye"></i> View
                                     </button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-action="history" data-ad-id="{{ ad.id }}" data-bs-toggle="modal" data-bs-target="#adHistoryModal" >
+                                        <i class="fas fa-clock-rotate-left"></i> History
+                                    </button>
                                 </td>
                             </tr>
 
@@ -456,6 +459,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- History Modal -->
+        <div class="modal fade" id="adHistoryModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Client History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="ad-history-body">
+                        <div class="text-center text-muted py-4">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('click', function(e){
+            var btn = e.target.closest('button[data-action="history"][data-ad-id]');
+            if(!btn) return;
+            var adId = btn.getAttribute('data-ad-id');
+            var body = document.getElementById('ad-history-body');
+            if (body) {
+                body.innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
+                fetch('/dashboard/admin-ad-history/' + adId + '/', {credentials:'same-origin'})
+                    .then(function(r){ return r.text(); })
+                    .then(function(html){ body.innerHTML = html; })
+                    .catch(function(){ body.innerHTML = '<div class="alert alert-danger">Failed to load history.</div>'; });
+            }
+        });
+        </script>
 
         {% if completed_history %}
         <!-- Completed History Table -->

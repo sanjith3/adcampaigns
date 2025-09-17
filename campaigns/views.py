@@ -426,3 +426,19 @@ def notifications(request):
         'follow_up_count': follow_count,
         'is_admin': request.user.is_superuser,
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_GET
+def admin_ad_history(request, ad_id):
+    """Return the client/ad history HTML snippet for display in modal."""
+    ad = get_object_or_404(AdRecord, id=ad_id)
+
+    # Group by business or by user depending on availability
+    history_qs = AdRecord.objects.filter(business_name=ad.business_name).order_by('-entry_date')
+
+    return render(request, 'campaigns/_ad_history.html', {
+        'subject_ad': ad,
+        'history_ads': history_qs,
+    })
