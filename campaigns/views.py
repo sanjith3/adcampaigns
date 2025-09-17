@@ -12,6 +12,8 @@ from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, Acti
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
+import time
+
 
 
 def is_admin(user):
@@ -257,6 +259,120 @@ def admin_dashboard(request):
         'quick_filter': quick_filter,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def poll_admin_status(request):
+    """Long-poll endpoint for admin dashboard counters.
+
+    Compares a lightweight signature of ads state (counts by status + latest id)
+    and waits up to 25 seconds for a change. Returns immediately if a change is
+    already detected.
+    """
+    timeout_seconds = 25
+
+    def get_counts_and_signature():
+        total = AdRecord.objects.count()
+        enquiry = AdRecord.objects.filter(status='enquiry').count()
+        pending = AdRecord.objects.filter(status='pending').count()
+        active = AdRecord.objects.filter(status='active').count()
+        completed = AdRecord.objects.filter(status='completed').count()
+        latest = AdRecord.objects.order_by('-id').values_list('id', flat=True).first() or 0
+        signature = f"{total}:{enquiry}:{pending}:{active}:{completed}:{latest}"
+        counts = {
+            'total': total,
+            'enquiry': enquiry,
+            'pending': pending,
+            'active': active,
+            'completed': completed,
+        }
+        return counts, signature
+
+    client_token = request.GET.get('token') or ''
+    start_time = time.time()
+    counts, current_sig = get_counts_and_signature()
+
+    # If client has a token and it doesn't match, state already changed
+    if client_token and client_token != current_sig:
+        return JsonResponse({
+            'changed': True,
+            'token': current_sig,
+            'counts': counts,
+        })
+
+    # Otherwise, wait for changes until timeout
+    while time.time() - start_time < timeout_seconds:
+        time.sleep(1)
+        new_counts, new_sig = get_counts_and_signature()
+        if new_sig != current_sig:
+            return JsonResponse({
+                'changed': True,
+                'token': new_sig,
+                'counts': new_counts,
+            })
+
+    # Timeout reached, no changes
+    return JsonResponse({
+        'changed': False,
+        'token': current_sig,
+        'counts': counts,
+    })
+
+
+@login_required
+def poll_user_status(request):
+    """Long-poll endpoint for a user's own dashboard.
+
+    Tracks only the current user's ads and returns when anything changes
+    (counts by status or latest id).
+    """
+    timeout_seconds = 25
+
+    def get_counts_and_signature(user):
+        user_ads = AdRecord.objects.filter(user=user)
+        total = user_ads.count()
+        enquiry = user_ads.filter(status='enquiry').count()
+        pending = user_ads.filter(status='pending').count()
+        active = user_ads.filter(status='active').count()
+        completed = user_ads.filter(status='completed').count()
+        latest = user_ads.order_by('-id').values_list('id', flat=True).first() or 0
+        signature = f"{total}:{enquiry}:{pending}:{active}:{completed}:{latest}"
+        counts = {
+            'total': total,
+            'enquiry': enquiry,
+            'pending': pending,
+            'active': active,
+            'completed': completed,
+        }
+        return counts, signature
+
+    client_token = request.GET.get('token') or ''
+    start_time = time.time()
+    counts, current_sig = get_counts_and_signature(request.user)
+
+    if client_token and client_token != current_sig:
+        return JsonResponse({
+            'changed': True,
+            'token': current_sig,
+            'counts': counts,
+        })
+
+    while time.time() - start_time < timeout_seconds:
+        time.sleep(1)
+        new_counts, new_sig = get_counts_and_signature(request.user)
+        if new_sig != current_sig:
+            return JsonResponse({
+                'changed': True,
+                'token': new_sig,
+                'counts': new_counts,
+            })
+
+    return JsonResponse({
+        'changed': False,
+        'token': current_sig,
+        'counts': counts,
+    })
 
 @login_required
 @user_passes_test(is_admin)

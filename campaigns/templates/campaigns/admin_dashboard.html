@@ -3,6 +3,12 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
+        <div id="new-enquiries-banner" class="alert alert-info d-none" role="alert">
+            <i class="fas fa-bell"></i>
+            New enquiries are available.
+            <a href="?status=enquiry" class="btn btn-sm btn-outline-primary ms-2">View Enquiries</a>
+            <a href="?status=all" class="btn btn-sm btn-outline-dark ms-1">View All Ads</a>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>
                 {% if show_follow %}
@@ -527,4 +533,58 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const pollUrl = "{% url 'poll_admin_status' %}";
+        let currentToken = null;
+        let lastCounts = null;
+
+        function scheduleNext(delayMs) {
+            setTimeout(pollOnce, delayMs);
+        }
+
+        async function pollOnce() {
+            try {
+                const url = new URL(pollUrl, window.location.origin);
+                if (currentToken) {
+                    url.searchParams.set('token', currentToken);
+                }
+                const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+                if (!resp.ok) throw new Error('poll failed');
+                const data = await resp.json();
+                if (typeof data.token === 'string') {
+                    const banner = document.getElementById('new-enquiries-banner');
+                    // Decide whether to show banner (only when enquiry count increased and current filter is not 'enquiry' or 'all')
+                    const params = new URLSearchParams(window.location.search);
+                    const currentFilter = params.get('status') || 'all';
+                    if (data.counts) {
+                        if (lastCounts && data.counts.enquiry > lastCounts.enquiry && currentFilter !== 'enquiry' && currentFilter !== 'all') {
+                            if (banner) banner.classList.remove('d-none');
+                        }
+                        lastCounts = data.counts;
+                    }
+                    if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'all')) {
+                        window.location.reload();
+                        return;
+                    }
+                    currentToken = data.token;
+                }
+                scheduleNext(1000);
+            } catch (e) {
+                // back off on errors
+                scheduleNext(5000);
+            }
+        }
+
+        // kick off after DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', pollOnce);
+        } else {
+            pollOnce();
+        }
+    })();
+    </script>
 {% endblock %}

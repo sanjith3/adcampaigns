@@ -279,3 +279,44 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const pollUrl = "{% url 'poll_user_status' %}";
+        let currentToken = null;
+
+        function scheduleNext(delayMs) {
+            setTimeout(pollOnce, delayMs);
+        }
+
+        async function pollOnce() {
+            try {
+                const url = new URL(pollUrl, window.location.origin);
+                if (currentToken) {
+                    url.searchParams.set('token', currentToken);
+                }
+                const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+                if (!resp.ok) throw new Error('poll failed');
+                const data = await resp.json();
+                if (typeof data.token === 'string') {
+                    if (currentToken && data.changed) {
+                        window.location.reload();
+                        return;
+                    }
+                    currentToken = data.token;
+                }
+                scheduleNext(1000);
+            } catch (e) {
+                scheduleNext(5000);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', pollOnce);
+        } else {
+            pollOnce();
+        }
+    })();
+</script>
+{% endblock %}

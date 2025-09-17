@@ -14,4 +14,10 @@ urlpatterns = [
     path('admin-users/', views.admin_users, name='admin_users'),
     path('admin-users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
     path('admin-users/<int:user_id>/set-password/', views.admin_set_password, name='admin_set_password'),
+
+    # Long-polling endpoint for admin dashboard
+    path('admin-dashboard/poll/', views.poll_admin_status, name='poll_admin_status'),
+
+    # Long-polling endpoint for user dashboard
+    path('dashboard/poll/', views.poll_user_status, name='poll_user_status'),
 ]
