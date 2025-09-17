@@ -14,4 +14,5 @@ urlpatterns = [
     path('admin-users/', views.admin_users, name='admin_users'),
     path('admin-users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
     path('admin-users/<int:user_id>/set-password/', views.admin_set_password, name='admin_set_password'),
+    path('notifications/', views.notifications, name='notifications'),
 ]

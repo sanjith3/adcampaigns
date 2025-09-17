@@ -22,8 +22,9 @@
                         <i class="fas fa-chart-line"></i> Back to Dashboard
                     </a>
                 {% else %}
-                    <a href="?view=follow" class="btn btn-primary">
+                    <a href="?view=follow" class="btn btn-primary position-relative">
                         <i class="fas fa-bell"></i> Follow-up
+                        <span id="user-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span>
                     </a>
                 {% endif %}
             </div>

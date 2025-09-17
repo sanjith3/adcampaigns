@@ -12,6 +12,7 @@ from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, Acti
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
+from django.views.decorators.http import require_GET #type: ignore
 
 
 def is_admin(user):
@@ -406,3 +407,22 @@ def admin_set_password(request, user_id):
         form = AdminSetPasswordForm()
 
     return render(request, 'campaigns/admin_set_password.html', {'form': form, 'target_user': target_user})
+
+
+@login_required
+@require_GET
+def notifications(request):
+    """Return lightweight counts for follow-up badges.
+
+    - For admins: number of completed ads without renewals (global)
+    - For users: number of their own completed ads without renewals
+    """
+    if request.user.is_superuser:
+        follow_count = AdRecord.objects.filter(status='completed', renewals__isnull=True).count()
+    else:
+        follow_count = AdRecord.objects.filter(user=request.user, status='completed', renewals__isnull=True).count()
+
+    return JsonResponse({
+        'follow_up_count': follow_count,
+        'is_admin': request.user.is_superuser,
+    })
