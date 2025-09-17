@@ -146,6 +146,7 @@ def add_payment_details(request, ad_id):
 def admin_dashboard(request):
     # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
+    user_filter = request.GET.get('user')  # user id as string or None
     show_follow = request.GET.get('view') == 'follow'
     history_start = request.GET.get('history_start')
     history_end = request.GET.get('history_end')
@@ -154,6 +155,23 @@ def admin_dashboard(request):
 
     if status_filter != 'all':
         all_ads = all_ads.filter(status=status_filter)
+
+    # Optional user filter
+    selected_user = None
+    if user_filter:
+        try:
+            selected_user = User.objects.get(id=int(user_filter))
+            # Do not allow filtering by admin accounts
+            if not selected_user.is_superuser:
+                all_ads = all_ads.filter(user=selected_user)
+            else:
+                selected_user = None
+        except (User.DoesNotExist, ValueError):
+            selected_user = None
+
+    # Sum amount for current filtered ads (used for active/completed views)
+    filtered_totals = all_ads.aggregate(total_amount=Coalesce(Sum('amount'), 0))
+    filtered_total_amount = filtered_totals['total_amount']
 
     # Daily stats for active campaigns (active today)
     today = timezone.now().date()
@@ -239,9 +257,16 @@ def admin_dashboard(request):
             end_date__lte=history_end_date
         ).order_by('-end_date')
 
+    # Users list for filter dropdown
+    # Exclude admin accounts from filter list
+    users_for_filter = User.objects.filter(is_superuser=False).order_by('username')
+
     context = {
         'all_ads': all_ads,
         'status_filter': status_filter,
+        'user_filter': user_filter or '',
+        'selected_user': selected_user,
+        'users_for_filter': users_for_filter,
         'status_counts': status_counts,
         'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
         'show_follow': show_follow,
@@ -256,6 +281,7 @@ def admin_dashboard(request):
         'history_start': history_start or '',
         'history_end': history_end or '',
         'quick_filter': quick_filter,
+        'filtered_total_amount': filtered_total_amount,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 

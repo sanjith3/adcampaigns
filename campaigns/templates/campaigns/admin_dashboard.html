@@ -190,26 +190,48 @@
         </div>
         {% else %}
 
-        <!-- Status Filter Buttons -->
+        <!-- Status and User Filters -->
         <div class="card mb-4">
             <div class="card-body">
-                <h6 class="card-title">Filter by Status:</h6>
-                <div class="btn-group" role="group">
-                    <a href="?status=all" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
-                        All Ads
-                    </a>
-                    <a href="?status=enquiry" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
-                        Enquiries ({{ status_counts.enquiry }})
-                    </a>
-                    <a href="?status=pending" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
-                        Pending ({{ status_counts.pending }})
-                    </a>
-                    <a href="?status=active" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">
-                        Active ({{ status_counts.active }})
-                    </a>
-                    <a href="?status=completed" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">
-                        Completed ({{ status_counts.completed }})
-                    </a>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <h6 class="card-title">Filter by Status:</h6>
+                        <div class="btn-group" role="group">
+                            <a href="?status=all{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
+                                All Ads
+                            </a>
+                            <a href="?status=enquiry{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
+                                Enquiries ({{ status_counts.enquiry }})
+                            </a>
+                            <a href="?status=pending{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
+                                Pending ({{ status_counts.pending }})
+                            </a>
+                            <a href="?status=active{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">
+                                Active ({{ status_counts.active }})
+                            </a>
+                            <a href="?status=completed{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">
+                                Completed ({{ status_counts.completed }})
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Filter by User</label>
+                        <form method="get" class="d-flex gap-2">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
+                            <select name="user" class="form-select">
+                                <option value="">All Users</option>
+                                {% for u in users_for_filter %}
+                                <option value="{{ u.id }}" {% if user_filter|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ u.get_full_name|default:u.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </form>
+                        {% if selected_user %}
+                        <div class="small text-muted mt-1">Showing records for: <strong>{{ selected_user.get_full_name|default:selected_user.username }}</strong></div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -217,7 +239,7 @@
         <!-- All Ads Table -->
         <div class="card">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">
+                <h5 class="mb-0 d-flex align-items-center justify-content-between">
                     <i class="fas fa-list"></i>
                     {% if status_filter == 'all' %}
                         All Ad Campaigns
@@ -225,6 +247,9 @@
                         {{ status_filter|title }} Campaigns
                     {% endif %}
                     ({{ all_ads.count }})
+                    {% if status_filter == 'active' or status_filter == 'completed' %}
+                    <span class="badge bg-primary ms-2">Total Amount: ₹{{ filtered_total_amount }}</span>
+                    {% endif %}
                 </h5>
             </div>
             <div class="card-body">
