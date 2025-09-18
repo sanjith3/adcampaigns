@@ -1,0 +1,39 @@
+<div class="table-responsive">
+    <table class="table table-hover table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Ad Name</th>
+                <th>Business</th>
+                <th>Employee</th>
+                <th>Amount</th>
+                <th>Entry Date</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in history_ads %}
+            <tr {% if subject_ad.id == item.id %}class="table-primary"{% endif %}>
+                <td>{{ item.ad_name }}</td>
+                <td>{{ item.business_name }}</td>
+                <td>
+                    {% if item.user %}
+                        {{ item.user.get_full_name|default:item.user.username }}
+                    {% else %}
+                        <span class="text-muted">(deleted user)</span>
+                    {% endif %}
+                </td>
+                <td>{% if item.amount %}₹{{ item.amount }}{% else %}-{% endif %}</td>
+                <td>{{ item.entry_date|date:"M d, Y H:i" }}</td>
+                <td>{% if item.start_date %}{{ item.start_date|date:"M d, Y" }}{% else %}-{% endif %}</td>
+                <td>{% if item.end_date %}{{ item.end_date|date:"M d, Y" }}{% else %}-{% endif %}</td>
+                <td>
+                    <span class="badge bg-{{ item.get_status_display_class }}">{{ item.get_status_display }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+

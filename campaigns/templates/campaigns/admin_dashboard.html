@@ -30,13 +30,17 @@
             <a href="{% url 'admin_users' %}" class="btn btn-outline-dark">
                 <i class="fas fa-users"></i> Manage Users
             </a>
+            <a href="#" id="admin-generate-report" class="btn btn-outline-success">
+                <i class="fas fa-paper-plane"></i> Generate Report
+            </a>
             {% if show_follow %}
                 <a href="?status={{ status_filter }}" class="btn btn-outline-primary">
                     <i class="fas fa-chart-line"></i> Back to Dashboard
                 </a>
             {% else %}
-                <a href="?status={{ status_filter }}&view=follow" class="btn btn-primary">
+                <a href="?status={{ status_filter }}&view=follow" class="btn btn-primary position-relative">
                     <i class="fas fa-bell"></i> Follow-up
+                    <span id="admin-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span>
                 </a>
             {% endif %}
         </div>
@@ -188,33 +192,61 @@
                 before yesterday
             {% endif %}
         </div>
+        <div class="mt-3">
+            {% include 'campaigns/_ad_history.html' with subject_ad=None history_ads=completed_history %}
+        </div>
         {% elif completed_history %}
         <!-- Only show completed history when date range filter is used -->
         <div class="alert alert-info">
             <i class="fas fa-info-circle"></i> Showing campaigns that were <strong>completed</strong> between {{ history_start }} and {{ history_end }}
         </div>
+        <div class="mt-3">
+            {% include 'campaigns/_ad_history.html' with subject_ad=None history_ads=completed_history %}
+        </div>
         {% else %}
 
-        <!-- Status Filter Buttons -->
+        <!-- Status and User Filters -->
         <div class="card mb-4">
             <div class="card-body">
-                <h6 class="card-title">Filter by Status:</h6>
-                <div class="btn-group" role="group">
-                    <a href="?status=all" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
-                        All Ads
-                    </a>
-                    <a href="?status=enquiry" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
-                        Enquiries ({{ status_counts.enquiry }})
-                    </a>
-                    <a href="?status=pending" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
-                        Pending ({{ status_counts.pending }})
-                    </a>
-                    <a href="?status=active" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">
-                        Active ({{ status_counts.active }})
-                    </a>
-                    <a href="?status=completed" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">
-                        Completed ({{ status_counts.completed }})
-                    </a>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <h6 class="card-title">Filter by Status:</h6>
+                        <div class="btn-group" role="group">
+                            <a href="?status=all{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">
+                                All Ads
+                            </a>
+                            <a href="?status=enquiry{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
+                                Enquiries ({{ status_counts.enquiry }})
+                            </a>
+                            <a href="?status=pending{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
+                                Pending ({{ status_counts.pending }})
+                            </a>
+                            <a href="?status=active{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">
+                                Active ({{ status_counts.active }})
+                            </a>
+                            <a href="?status=completed{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">
+                                Completed ({{ status_counts.completed }})
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Filter by User</label>
+                        <form method="get" class="d-flex gap-2">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
+                            <select name="user" class="form-select">
+                                <option value="">All Users</option>
+                                {% for u in users_for_filter %}
+                                <option value="{{ u.id }}" {% if user_filter|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ u.get_full_name|default:u.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </form>
+                        {% if selected_user %}
+                        <div class="small text-muted mt-1">Showing records for: <strong>{{ selected_user.get_full_name|default:selected_user.username }}</strong></div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -222,7 +254,7 @@
         <!-- All Ads Table -->
         <div class="card">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">
+                <h5 class="mb-0 d-flex align-items-center justify-content-between">
                     <i class="fas fa-list"></i>
                     {% if status_filter == 'all' %}
                         All Ad Campaigns
@@ -230,6 +262,9 @@
                         {{ status_filter|title }} Campaigns
                     {% endif %}
                     ({{ all_ads.count }})
+                    {% if status_filter == 'active' or status_filter == 'completed' %}
+                    <span class="badge bg-primary ms-2">Total Amount: ₹{{ filtered_total_amount }}</span>
+                    {% endif %}
                 </h5>
             </div>
             <div class="card-body">
@@ -306,6 +341,9 @@
                                     <!-- View details button for all ads -->
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
                                         <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-action="history" data-ad-id="{{ ad.id }}" data-bs-toggle="modal" data-bs-target="#adHistoryModal" >
+                                        <i class="fas fa-clock-rotate-left"></i> History
                                     </button>
                                 </td>
                             </tr>
@@ -462,6 +500,37 @@
             </div>
         </div>
 
+        <!-- History Modal -->
+        <div class="modal fade" id="adHistoryModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Client History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="ad-history-body">
+                        <div class="text-center text-muted py-4">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('click', function(e){
+            var btn = e.target.closest('button[data-action="history"][data-ad-id]');
+            if(!btn) return;
+            var adId = btn.getAttribute('data-ad-id');
+            var body = document.getElementById('ad-history-body');
+            if (body) {
+                body.innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
+                fetch('/dashboard/admin-ad-history/' + adId + '/', {credentials:'same-origin'})
+                    .then(function(r){ return r.text(); })
+                    .then(function(html){ body.innerHTML = html; })
+                    .catch(function(){ body.innerHTML = '<div class="alert alert-danger">Failed to load history.</div>'; });
+            }
+        });
+        </script>
+
         {% if completed_history %}
         <!-- Completed History Table -->
         <div class="card mt-4">
@@ -533,6 +602,9 @@
         {% endif %}
     </div>
 </div>
+<<<<<<< HEAD
+{% endblock %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -557,7 +629,6 @@
                 const data = await resp.json();
                 if (typeof data.token === 'string') {
                     const banner = document.getElementById('new-enquiries-banner');
-                    // Decide whether to show banner (only when enquiry count increased and current filter is not 'enquiry' or 'all')
                     const params = new URLSearchParams(window.location.search);
                     const currentFilter = params.get('status') || 'all';
                     if (data.counts) {
@@ -574,17 +645,41 @@
                 }
                 scheduleNext(1000);
             } catch (e) {
-                // back off on errors
                 scheduleNext(5000);
             }
         }
 
-        // kick off after DOM ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', pollOnce);
         } else {
             pollOnce();
         }
     })();
-    </script>
+
+    (function(){
+      var btn = document.getElementById('admin-generate-report');
+      if (!btn) return;
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        btn.disabled = true;
+        var orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+        fetch('/dashboard/generate-report/', { credentials: 'same-origin' })
+          .then(function(r){
+            var ct = r.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) return Promise.reject(new Error('Non-JSON response'));
+            return r.json();
+          })
+          .then(function(data){
+            if (data && data.ok) {
+              alert('Successfully sent email.');
+            } else {
+              alert('Report not generated: ' + (data && data.error ? data.error : 'Unknown error'));
+            }
+          })
+          .catch(function(err){ alert('Failed to send report.'); })
+          .finally(function(){ btn.disabled = false; btn.innerHTML = orig; });
+      });
+    })();
+</script>
 {% endblock %}

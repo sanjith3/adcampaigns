@@ -93,3 +93,14 @@ LOGIN_URL = '/login/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email (Gmail SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+# Fixed account to send through (will use user's email as From header when provided)
+EMAIL_HOST_USER = 'v.varunprashanth20@gmail.com'
+EMAIL_HOST_PASSWORD = 'dtbciuyprqfkkvvt'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER

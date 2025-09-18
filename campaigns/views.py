@@ -14,6 +14,9 @@ from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
 import time
 
+from django.views.decorators.http import require_GET #type: ignore
+from django.core.mail import send_mail, EmailMessage #type: ignore
+
 
 
 def is_admin(user):
@@ -36,6 +39,7 @@ def dashboard(request):
         return redirect('admin_dashboard')
 
     show_follow = request.GET.get('view') == 'follow'
+    status_filter = request.GET.get('status', 'all')
 
     user_ads = AdRecord.objects.filter(user=request.user)
 
@@ -89,6 +93,7 @@ def dashboard(request):
         'active_ads': active_ads,
         'completed_ads': completed_ads,
         'follow_up_ads': follow_up_ads,
+        'status_filter': status_filter,
         'show_follow': show_follow,
         'stats_active_today_count': daily_stats['count'],
         'stats_active_today_amount': daily_stats['total_amount'],
@@ -147,6 +152,7 @@ def add_payment_details(request, ad_id):
 def admin_dashboard(request):
     # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
+    user_filter = request.GET.get('user')  # user id as string or None
     show_follow = request.GET.get('view') == 'follow'
     history_start = request.GET.get('history_start')
     history_end = request.GET.get('history_end')
@@ -155,6 +161,23 @@ def admin_dashboard(request):
 
     if status_filter != 'all':
         all_ads = all_ads.filter(status=status_filter)
+
+    # Optional user filter
+    selected_user = None
+    if user_filter:
+        try:
+            selected_user = User.objects.get(id=int(user_filter))
+            # Do not allow filtering by admin accounts
+            if not selected_user.is_superuser:
+                all_ads = all_ads.filter(user=selected_user)
+            else:
+                selected_user = None
+        except (User.DoesNotExist, ValueError):
+            selected_user = None
+
+    # Sum amount for current filtered ads (used for active/completed views)
+    filtered_totals = all_ads.aggregate(total_amount=Coalesce(Sum('amount'), 0))
+    filtered_total_amount = filtered_totals['total_amount']
 
     # Daily stats for active campaigns (active today)
     today = timezone.now().date()
@@ -240,9 +263,16 @@ def admin_dashboard(request):
             end_date__lte=history_end_date
         ).order_by('-end_date')
 
+    # Users list for filter dropdown
+    # Exclude admin accounts from filter list
+    users_for_filter = User.objects.filter(is_superuser=False).order_by('username')
+
     context = {
         'all_ads': all_ads,
         'status_filter': status_filter,
+        'user_filter': user_filter or '',
+        'selected_user': selected_user,
+        'users_for_filter': users_for_filter,
         'status_counts': status_counts,
         'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
         'show_follow': show_follow,
@@ -257,6 +287,7 @@ def admin_dashboard(request):
         'history_start': history_start or '',
         'history_end': history_end or '',
         'quick_filter': quick_filter,
+        'filtered_total_amount': filtered_total_amount,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
 
@@ -522,3 +553,90 @@ def admin_set_password(request, user_id):
         form = AdminSetPasswordForm()
 
     return render(request, 'campaigns/admin_set_password.html', {'form': form, 'target_user': target_user})
+
+
+@login_required
+@require_GET
+def notifications(request):
+    """Return lightweight counts for follow-up badges.
+
+    - For admins: number of completed ads without renewals (global)
+    - For users: number of their own completed ads without renewals
+    """
+    if request.user.is_superuser:
+        follow_count = AdRecord.objects.filter(status='completed', renewals__isnull=True).count()
+    else:
+        follow_count = AdRecord.objects.filter(user=request.user, status='completed', renewals__isnull=True).count()
+
+    return JsonResponse({
+        'follow_up_count': follow_count,
+        'is_admin': request.user.is_superuser,
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_GET
+def admin_generate_report(request):
+    """Admin-only: email today's per-user enquiry and active counts, plus totals.
+
+    - Recipient: fixed admin email
+    - Content: For each non-admin user: enquiries created today, active today
+      Then overall totals across all users
+    """
+    today = timezone.now().date()
+
+    # Collect users (exclude superusers)
+    users = User.objects.filter(is_superuser=False).order_by('username')
+
+    lines = [f"Daily Report - {today:%b %d, %Y}"]
+    total_enquiries = 0
+    total_active = 0
+
+    for u in users:
+        user_ads = AdRecord.objects.filter(user=u)
+        enquiries_today = user_ads.filter(status='enquiry', entry_date__date=today).count()
+        active_today = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today).count()
+        total_enquiries += enquiries_today
+        total_active += active_today
+        lines.append(
+            f"- {u.get_full_name() or u.username}: enquiries today {enquiries_today}, active today {active_today}"
+        )
+
+    lines.append("")
+    lines.append(f"TOTAL enquiries today: {total_enquiries}")
+    lines.append(f"TOTAL active today: {total_active}")
+
+    subject = f"AdSoft Daily Report - {today.isoformat()}"
+    body = "\n".join(lines)
+
+    recipient = 'sanjithjin@gmail.com'
+    from django.conf import settings  # type: ignore
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    try:
+        email = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=from_email,
+            to=[recipient],
+        )
+        email.send(fail_silently=False)
+        return JsonResponse({'ok': True, 'message': 'Report generated and sent'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_GET
+def admin_ad_history(request, ad_id):
+    """Return the client/ad history HTML snippet for display in modal."""
+    ad = get_object_or_404(AdRecord, id=ad_id)
+
+    # Group by business or by user depending on availability
+    history_qs = AdRecord.objects.filter(business_name=ad.business_name).order_by('-entry_date')
+
+    return render(request, 'campaigns/_ad_history.html', {
+        'subject_ad': ad,
+        'history_ads': history_qs,
+    })

@@ -20,4 +20,8 @@ urlpatterns = [
 
     # Long-polling endpoint for user dashboard
     path('dashboard/poll/', views.poll_user_status, name='poll_user_status'),
+    path('notifications/', views.notifications, name='notifications'),
+    path('generate-report/', views.admin_generate_report, name='admin_generate_report'),
+    path('admin-ad-history/<int:ad_id>/', views.admin_ad_history, name='admin_ad_history'),
+
 ]

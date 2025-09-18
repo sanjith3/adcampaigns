@@ -22,14 +22,28 @@
                         <i class="fas fa-chart-line"></i> Back to Dashboard
                     </a>
                 {% else %}
-                    <a href="?view=follow" class="btn btn-primary">
+                    <a href="?view=follow" class="btn btn-primary position-relative">
                         <i class="fas fa-bell"></i> Follow-up
+                        <span id="user-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span>
                     </a>
                 {% endif %}
             </div>
         </div>
 
         {% if not show_follow %}
+        <!-- Status Filter Buttons -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="?status=all" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">All</a>
+                    <a href="?status=enquiry" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">Enquiry</a>
+                    <a href="?status=pending" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">Pending</a>
+                    <a href="?status=active" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">Active</a>
+                    <a href="?status=completed" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">Completed</a>
+                </div>
+            </div>
+        </div>
+
         <!-- Stats Row -->
         <div class="row mb-4">
             <div class="col-md-4">
@@ -123,7 +137,7 @@
         {% else %}
 
         <!-- Active Ads -->
-        {% if active_ads %}
+        {% if active_ads and status_filter == 'all' or active_ads and status_filter == 'active' %}
         <div class="card mb-4 border-success">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="fas fa-play-circle"></i> Active Campaigns</h5>
@@ -160,7 +174,7 @@
         {% endif %}
 
         <!-- Pending Verification -->
-        {% if pending_ads %}
+        {% if pending_ads and status_filter == 'all' or pending_ads and status_filter == 'pending' %}
         <div class="card mb-4 border-warning">
             <div class="card-header bg-warning text-dark">
                 <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Verification</h5>
@@ -197,7 +211,7 @@
         {% endif %}
 
         <!-- Enquiries -->
-        {% if enquiries %}
+        {% if enquiries and status_filter == 'all' or enquiries and status_filter == 'enquiry' %}
         <div class="card mb-4 border-secondary">
             <div class="card-header bg-secondary text-white">
                 <h5 class="mb-0"><i class="fas fa-question-circle"></i> Enquiries</h5>
@@ -240,7 +254,7 @@
         {% endif %}
 
         <!-- Completed Ads -->
-        {% if completed_ads %}
+        {% if completed_ads and status_filter == 'all' or completed_ads and status_filter == 'completed' %}
         <div class="card mb-4 border-info">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0"><i class="fas fa-check-circle"></i> Completed Campaigns</h5>
