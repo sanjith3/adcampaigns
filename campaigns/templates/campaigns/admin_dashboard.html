@@ -24,6 +24,9 @@
             <a href="{% url 'admin_users' %}" class="btn btn-outline-dark">
                 <i class="fas fa-users"></i> Manage Users
             </a>
+            <a href="#" id="admin-generate-report" class="btn btn-outline-success">
+                <i class="fas fa-paper-plane"></i> Generate Report
+            </a>
             {% if show_follow %}
                 <a href="?status={{ status_filter }}" class="btn btn-outline-primary">
                     <i class="fas fa-chart-line"></i> Back to Dashboard
@@ -183,10 +186,16 @@
                 before yesterday
             {% endif %}
         </div>
+        <div class="mt-3">
+            {% include 'campaigns/_ad_history.html' with subject_ad=None history_ads=completed_history %}
+        </div>
         {% elif completed_history %}
         <!-- Only show completed history when date range filter is used -->
         <div class="alert alert-info">
             <i class="fas fa-info-circle"></i> Showing campaigns that were <strong>completed</strong> between {{ history_start }} and {{ history_end }}
+        </div>
+        <div class="mt-3">
+            {% include 'campaigns/_ad_history.html' with subject_ad=None history_ads=completed_history %}
         </div>
         {% else %}
 
@@ -587,4 +596,32 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+(function(){
+  var btn = document.getElementById('admin-generate-report');
+  if (!btn) return;
+  btn.addEventListener('click', function(e){
+    e.preventDefault();
+    btn.disabled = true;
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+    fetch('/dashboard/generate-report/', { credentials: 'same-origin' })
+      .then(function(r){
+        var ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) return Promise.reject(new Error('Non-JSON response'));
+        return r.json();
+      })
+      .then(function(data){
+        if (data && data.ok) {
+          alert('Successfully sent email.');
+        } else {
+          alert('Report not generated: ' + (data && data.error ? data.error : 'Unknown error'));
+        }
+      })
+      .catch(function(err){ alert('Failed to send report.'); })
+      .finally(function(){ btn.disabled = false; btn.innerHTML = orig; });
+  });
+})();
+</script>
 {% endblock %}

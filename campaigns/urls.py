@@ -15,5 +15,6 @@ urlpatterns = [
     path('admin-users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
     path('admin-users/<int:user_id>/set-password/', views.admin_set_password, name='admin_set_password'),
     path('notifications/', views.notifications, name='notifications'),
+    path('generate-report/', views.admin_generate_report, name='admin_generate_report'),
     path('admin-ad-history/<int:ad_id>/', views.admin_ad_history, name='admin_ad_history'),
 ]

@@ -13,6 +13,7 @@ from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
 from django.views.decorators.http import require_GET #type: ignore
+from django.core.mail import send_mail, EmailMessage #type: ignore
 
 
 def is_admin(user):
@@ -35,6 +36,7 @@ def dashboard(request):
         return redirect('admin_dashboard')
 
     show_follow = request.GET.get('view') == 'follow'
+    status_filter = request.GET.get('status', 'all')
 
     user_ads = AdRecord.objects.filter(user=request.user)
 
@@ -88,6 +90,7 @@ def dashboard(request):
         'active_ads': active_ads,
         'completed_ads': completed_ads,
         'follow_up_ads': follow_up_ads,
+        'status_filter': status_filter,
         'show_follow': show_follow,
         'stats_active_today_count': daily_stats['count'],
         'stats_active_today_amount': daily_stats['total_amount'],
@@ -452,6 +455,58 @@ def notifications(request):
         'follow_up_count': follow_count,
         'is_admin': request.user.is_superuser,
     })
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_GET
+def admin_generate_report(request):
+    """Admin-only: email today's per-user enquiry and active counts, plus totals.
+
+    - Recipient: fixed admin email
+    - Content: For each non-admin user: enquiries created today, active today
+      Then overall totals across all users
+    """
+    today = timezone.now().date()
+
+    # Collect users (exclude superusers)
+    users = User.objects.filter(is_superuser=False).order_by('username')
+
+    lines = [f"Daily Report - {today:%b %d, %Y}"]
+    total_enquiries = 0
+    total_active = 0
+
+    for u in users:
+        user_ads = AdRecord.objects.filter(user=u)
+        enquiries_today = user_ads.filter(status='enquiry', entry_date__date=today).count()
+        active_today = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today).count()
+        total_enquiries += enquiries_today
+        total_active += active_today
+        lines.append(
+            f"- {u.get_full_name() or u.username}: enquiries today {enquiries_today}, active today {active_today}"
+        )
+
+    lines.append("")
+    lines.append(f"TOTAL enquiries today: {total_enquiries}")
+    lines.append(f"TOTAL active today: {total_active}")
+
+    subject = f"AdSoft Daily Report - {today.isoformat()}"
+    body = "\n".join(lines)
+
+    recipient = 'sanjithjin@gmail.com'
+    from django.conf import settings  # type: ignore
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    try:
+        email = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=from_email,
+            to=[recipient],
+        )
+        email.send(fail_silently=False)
+        return JsonResponse({'ok': True, 'message': 'Report generated and sent'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
 @login_required
