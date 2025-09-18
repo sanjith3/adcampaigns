@@ -602,84 +602,69 @@
         {% endif %}
     </div>
 </div>
-<<<<<<< HEAD
-{% endblock %}
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    (function() {
-        const pollUrl = "{% url 'poll_admin_status' %}";
-        let currentToken = null;
-        let lastCounts = null;
+(function() {
+    const pollUrl = "{% url 'poll_admin_status' %}";
+    let currentToken = null;
+    let lastCounts = null;
 
-        function scheduleNext(delayMs) {
-            setTimeout(pollOnce, delayMs);
-        }
+    // Schedule next poll after a delay
+    function scheduleNext(delayMs) {
+        setTimeout(pollOnce, delayMs);
+    }
 
-        async function pollOnce() {
-            try {
-                const url = new URL(pollUrl, window.location.origin);
-                if (currentToken) {
-                    url.searchParams.set('token', currentToken);
+    async function pollOnce() {
+        try {
+            const url = new URL(pollUrl, window.location.origin);
+            if (currentToken) url.searchParams.set('token', currentToken);
+
+            const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('Poll failed');
+
+            const data = await resp.json();
+            if (!data || typeof data.token !== 'string') throw new Error('Invalid response');
+
+            const banner = document.getElementById('new-enquiries-banner');
+            const params = new URLSearchParams(window.location.search);
+            const currentFilter = params.get('status') || 'all';
+
+            if (data.counts) {
+                // Show banner for new enquiries if needed
+                if (lastCounts 
+                    && data.counts.enquiry > lastCounts.enquiry 
+                    && currentFilter !== 'enquiry' 
+                    && currentFilter !== 'all') {
+                    if (banner) banner.classList.remove('d-none');
                 }
-                const resp = await fetch(url.toString(), { credentials: 'same-origin' });
-                if (!resp.ok) throw new Error('poll failed');
-                const data = await resp.json();
-                if (typeof data.token === 'string') {
-                    const banner = document.getElementById('new-enquiries-banner');
-                    const params = new URLSearchParams(window.location.search);
-                    const currentFilter = params.get('status') || 'all';
-                    if (data.counts) {
-                        if (lastCounts && data.counts.enquiry > lastCounts.enquiry && currentFilter !== 'enquiry' && currentFilter !== 'all') {
-                            if (banner) banner.classList.remove('d-none');
-                        }
-                        lastCounts = data.counts;
-                    }
-                    if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'all')) {
-                        window.location.reload();
-                        return;
-                    }
-                    currentToken = data.token;
-                }
-                scheduleNext(1000);
-            } catch (e) {
-                scheduleNext(5000);
+                lastCounts = data.counts;
             }
-        }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', pollOnce);
-        } else {
-            pollOnce();
-        }
-    })();
-
-    (function(){
-      var btn = document.getElementById('admin-generate-report');
-      if (!btn) return;
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        btn.disabled = true;
-        var orig = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
-        fetch('/dashboard/generate-report/', { credentials: 'same-origin' })
-          .then(function(r){
-            var ct = r.headers.get('content-type') || '';
-            if (!ct.includes('application/json')) return Promise.reject(new Error('Non-JSON response'));
-            return r.json();
-          })
-          .then(function(data){
-            if (data && data.ok) {
-              alert('Successfully sent email.');
-            } else {
-              alert('Report not generated: ' + (data && data.error ? data.error : 'Unknown error'));
+            // Reload page only if a real change occurred and token changed
+            if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'all')) {
+                window.location.reload();
+                return; // stop further polling on this execution
             }
-          })
-          .catch(function(err){ alert('Failed to send report.'); })
-          .finally(function(){ btn.disabled = false; btn.innerHTML = orig; });
-      });
-    })();
+
+            currentToken = data.token; // update token
+            scheduleNext(1000); // poll again after 1s
+
+        } catch (e) {
+            console.warn('Admin poll error:', e);
+            scheduleNext(5000); // retry after 5s on error
+        }
+    }
+
+    // Start polling after DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', pollOnce);
+    } else {
+        pollOnce();
+    }
+})();
 </script>
 {% endblock %}
+

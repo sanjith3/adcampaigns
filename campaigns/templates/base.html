@@ -50,36 +50,45 @@
     {% block extra_js %}
 
     <script>
-        (function() {
-            function updateFollowBadge(count) {
-                var adminBadge = document.getElementById('admin-follow-badge');
-                var userBadge = document.getElementById('user-follow-badge');
-                [adminBadge, userBadge].forEach(function(el) {
-                    if (!el) return;
-                    if (count > 0) {
-                        el.textContent = count;
-                        el.style.display = 'inline-block';
-                    } else {
-                        el.textContent = '';
-                        el.style.display = 'none';
-                    }
-                });
+      (function() {
+    function updateFollowBadge(count) {
+        var adminBadge = document.getElementById('admin-follow-badge');
+        var userBadge = document.getElementById('user-follow-badge');
+        [adminBadge, userBadge].forEach(function(el) {
+            if (!el) return;
+            if (count > 0) {
+                el.textContent = count;
+                el.style.display = 'inline-block';
+            } else {
+                el.textContent = '';
+                el.style.display = 'none';
             }
+        });
+    }
 
-            function fetchCounts() {
-                fetch('/dashboard/notifications/', { credentials: 'same-origin' })
-                    .then(function(r) { return r.ok ? r.json() : null; })
-                    .then(function(data) {
-                        if (!data) return;
-                        updateFollowBadge(data.follow_up_count);
-                    })
-                    .catch(function(){});
+    async function fetchCounts() {
+        try {
+            const resp = await fetch('/dashboard/notifications/', { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('Failed to fetch notifications');
+            const data = await resp.json();
+            if (data && typeof data.follow_up_count === 'number') {
+                updateFollowBadge(data.follow_up_count);
             }
+        } catch (e) {
+            console.warn('Notification poll error:', e);
+        } finally {
+            setTimeout(fetchCounts, 20000); // schedule next poll after 20s
+        }
+    }
 
-            // Poll every 20 seconds
-            fetchCounts();
-            setInterval(fetchCounts, 20000);
-        })();
+    // Start polling after DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fetchCounts);
+    } else {
+        fetchCounts();
+    }
+})();
+
     </script>
     {% endblock %}
 

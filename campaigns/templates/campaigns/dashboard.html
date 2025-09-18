@@ -293,44 +293,47 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
-    (function() {
-        const pollUrl = "{% url 'poll_user_status' %}";
-        let currentToken = null;
+(function() {
+    const pollUrl = "{% url 'poll_user_status' %}";
+    let currentToken = null;
 
-        function scheduleNext(delayMs) {
-            setTimeout(pollOnce, delayMs);
-        }
+    function scheduleNext(delayMs) {
+        setTimeout(pollOnce, delayMs);
+    }
 
-        async function pollOnce() {
-            try {
-                const url = new URL(pollUrl, window.location.origin);
-                if (currentToken) {
-                    url.searchParams.set('token', currentToken);
-                }
-                const resp = await fetch(url.toString(), { credentials: 'same-origin' });
-                if (!resp.ok) throw new Error('poll failed');
-                const data = await resp.json();
-                if (typeof data.token === 'string') {
-                    if (currentToken && data.changed) {
-                        window.location.reload();
-                        return;
-                    }
-                    currentToken = data.token;
-                }
-                scheduleNext(1000);
-            } catch (e) {
-                scheduleNext(5000);
+    async function pollOnce() {
+        try {
+            const url = new URL(pollUrl, window.location.origin);
+            if (currentToken) url.searchParams.set('token', currentToken);
+
+            const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('Poll failed');
+
+            const data = await resp.json();
+            if (!data || typeof data.token !== 'string') throw new Error('Invalid response');
+
+            // Reload page only if real change detected
+            if (currentToken && data.changed) {
+                window.location.reload();
+                return; // stop further polling on this execution
             }
-        }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', pollOnce);
-        } else {
-            pollOnce();
+            currentToken = data.token; // update token
+            scheduleNext(1000); // poll again after 1s
+
+        } catch (e) {
+            console.warn('User poll error:', e);
+            scheduleNext(5000); // retry after 5s on error
         }
-    })();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', pollOnce);
+    } else {
+        pollOnce();
+    }
+})();
 </script>
 {% endblock %}

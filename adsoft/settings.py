@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-vmkxe%v+n%+9ds0(33e02ork$5h&!3tg-_-zj8-nl1xja9&%h*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
