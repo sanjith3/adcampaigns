@@ -16,9 +16,6 @@ import time
 from django.views.decorators.http import require_GET #type: ignore
 from django.core.mail import send_mail, EmailMessage #type: ignore
 from django.views.decorators.cache import never_cache #type: ignore
-# import asyncio
-
-
 
 
 def is_admin(user):
@@ -36,7 +33,7 @@ class AlwaysLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-    # Redirect admins to admin dashboard by default
+
     if request.user.is_superuser:
         return redirect('admin_dashboard')
 
@@ -45,14 +42,12 @@ def dashboard(request):
 
     user_ads = AdRecord.objects.filter(user=request.user)
 
-    # Separate ads by status for different sections
     enquiries = user_ads.filter(status='enquiry')
     pending_ads = user_ads.filter(status='pending')
     active_ads = user_ads.filter(status='active')
     completed_ads = user_ads.filter(status='completed')
     follow_up_ads = completed_ads.filter(renewals__isnull=True)
 
-    # Daily stats for active campaigns (active today)
     today = timezone.now().date()
     active_today_qs = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today)
     daily_stats = active_today_qs.aggregate(
@@ -60,7 +55,6 @@ def dashboard(request):
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
     range_count = None
@@ -109,7 +103,6 @@ def dashboard(request):
 
 @login_required
 def create_ad(request):
-    # Prevent admins from creating enquiries
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot create enquiries. Use the admin dashboard to view records.')
         return redirect('admin_dashboard')
@@ -129,7 +122,6 @@ def create_ad(request):
 
 @login_required
 def add_payment_details(request, ad_id):
-    # Prevent admins from adding payment details
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot add payment details for enquiries.')
         return redirect('admin_dashboard')
@@ -152,7 +144,6 @@ def add_payment_details(request, ad_id):
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
     user_filter = request.GET.get('user')
     show_follow = request.GET.get('view') == 'follow'
@@ -164,7 +155,6 @@ def admin_dashboard(request):
     if status_filter != 'all':
         all_ads = all_ads.filter(status=status_filter)
 
-    # Optional user filter
     selected_user = None
     if user_filter:
         try:
@@ -214,7 +204,6 @@ def admin_dashboard(request):
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
 
-    # Count by status for filters
     status_counts = {
         'all': AdRecord.objects.count(),
         'enquiry': AdRecord.objects.filter(status='enquiry').count(),
@@ -223,10 +212,8 @@ def admin_dashboard(request):
         'completed': AdRecord.objects.filter(status='completed').count(),
     }
 
-    # Follow-up ads: completed ads that do not have any renewals yet
     follow_up_ads = AdRecord.objects.filter(status='completed', renewals__isnull=True).order_by('-end_date')
 
-    # Completed history filter
     completed_history = None
     history_start_date = None
     history_end_date = None
@@ -239,7 +226,6 @@ def admin_dashboard(request):
         history_start_date = None
         history_end_date = None
 
-    # Quick filter for yesterday/before yesterday - show completed campaigns that finished on those days
     quick_filter = request.GET.get('quick_filter')
     completed_history = None
     if quick_filter == 'yesterday':
@@ -261,8 +247,6 @@ def admin_dashboard(request):
             end_date__lte=history_end_date
         ).order_by('-end_date')
 
-    # Users list for filter dropdown
-    # Exclude admin accounts from filter list
     users_for_filter = User.objects.filter(is_superuser=False).order_by('username')
 
     context = {
@@ -292,31 +276,29 @@ def admin_dashboard(request):
 
 
 def get_counts_and_signature(queryset):
-    """
-    Return a tuple of (counts_dict, signature_string) for the given queryset.
-    Signature combines all counts + latest id to detect changes efficiently.
-    """
     agg = queryset.aggregate(
-        total=Count("id"),
-        enquiry=Count("id", filter=Q(status="enquiry")),
-        pending=Count("id", filter=Q(status="pending")),
-        active=Count("id", filter=Q(status="active")),
-        completed=Count("id", filter=Q(status="completed")),
-        latest=Max("id"),
+        total=Count('id'),
+        enquiry=Count('id', filter=Q(status='enquiry')),
+        pending=Count('id', filter=Q(status='pending')),
+        active=Count('id', filter=Q(status='active')),
+        completed=Count('id', filter=Q(status='completed')),
+        latest=Max('id'),
+        last_update=Max('updated_at'),
     )
-
     counts = {
-        "total": agg["total"] or 0,
-        "enquiry": agg["enquiry"] or 0,
-        "pending": agg["pending"] or 0,
-        "active": agg["active"] or 0,
-        "completed": agg["completed"] or 0,
+        'total': agg['total'],
+        'enquiry': agg['enquiry'],
+        'pending': agg['pending'],
+        'active': agg['active'],
+        'completed': agg['completed'],
     }
-
-    latest_id = agg["latest"] or 0
-
-    signature = f"{counts['total']}:{counts['enquiry']}:{counts['pending']}:{counts['active']}:{counts['completed']}:{latest_id}"
+    signature = (
+        f"{agg['total']}:{agg['enquiry']}:{agg['pending']}:"
+        f"{agg['active']}:{agg['completed']}:{agg['latest'] or 0}:"
+        f"{agg['last_update'].timestamp() if agg['last_update'] else 0}"
+    )
     return counts, signature
+
 
 @never_cache
 @login_required
@@ -484,7 +466,6 @@ def admin_users(request):
 @login_required
 @user_passes_test(is_admin)
 def admin_delete_user(request, user_id):
-    # Only accept POST deletes and protect against self-deletion of the only superuser
     if request.method != 'POST':
         messages.error(request, 'Invalid request method.')
         return redirect('admin_users')
@@ -495,7 +476,6 @@ def admin_delete_user(request, user_id):
         messages.error(request, 'You cannot delete your own account while logged in.')
         return redirect('admin_users')
 
-    # Prevent deleting the last superuser account
     if user.is_superuser and User.objects.filter(is_superuser=True).count() <= 1:
         messages.error(request, 'Cannot delete the last admin account.')
         return redirect('admin_users')
@@ -554,7 +534,6 @@ def admin_generate_report(request):
     """
     today = timezone.now().date()
 
-    # Collect users (exclude superusers)
     users = User.objects.filter(is_superuser=False).order_by('username')
 
     lines = [f"Daily Report - {today:%b %d, %Y}"]
@@ -601,7 +580,6 @@ def admin_ad_history(request, ad_id):
     """Return the client/ad history HTML snippet for display in modal."""
     ad = get_object_or_404(AdRecord, id=ad_id)
 
-    # Group by business or by user depending on availability
     history_qs = AdRecord.objects.filter(business_name=ad.business_name).order_by('-entry_date')
 
     return render(request, 'campaigns/_ad_history.html', {
