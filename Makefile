@@ -1,20 +1,19 @@
 # Variables
-PYTHON=python3
-MANAGE=$(PYTHON) manage.py
+MANAGE=python manage.py
 
-install: ## Install dependencies
-	$(PYTHON) -m pip install -r requirements.txt
+install-dep:
+	python -m pip install -r requirements.txt
 
-run: ## Run Django development server
+run:
 	$(MANAGE) runserver
 
-run-glob: ## Run Django development server
+run-glob: 
 	$(MANAGE) runserver 0.0.0.0:8000
 
-migrate: ## Apply database migrations
+migrate:
 	$(MANAGE) migrate
 
-createsuperuser: ## Create an admin user
+createsuperuser: 
 	$(MANAGE) createsuperuser
 
 prod: 
@@ -23,6 +22,6 @@ prod:
 prod-glob:
 	uvicorn adsoft.asgi:application --reload --host 0.0.0.0 --port 8000
 
-clean: ## Remove pycache and temporary files
+clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -name "*.pyc" -exec rm -f {} +
