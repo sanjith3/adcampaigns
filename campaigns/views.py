@@ -83,6 +83,13 @@ def dashboard(request):
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
 
+        # If viewing Active status, constrain the Active table by range
+        if status_filter == 'active':
+            active_ads = active_ads.filter(
+                start_date__gte=range_start,
+                end_date__lte=range_end
+            )
+
     context = {
         'enquiries': enquiries,
         'pending_ads': pending_ads,
@@ -197,12 +204,26 @@ def admin_dashboard(request):
             start_date__gte=range_start,
             end_date__lte=range_end
         )
+        # Respect selected user for range stats when provided
+        if selected_user:
+            range_qs = range_qs.filter(user=selected_user)
         range_stats = range_qs.aggregate(
             count=Count('id'),
             total_amount=Coalesce(Sum('amount'), 0)
         )
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
+
+        # If viewing Active status, also constrain displayed table by range
+        if status_filter == 'active':
+            all_ads = all_ads.filter(
+                start_date__gte=range_start,
+                end_date__lte=range_end
+            )
+            # Recompute totals for the filtered set
+            filtered_total_amount = all_ads.aggregate(
+                total_amount=Coalesce(Sum('amount'), 0)
+            )['total_amount']
 
     status_counts = {
         'all': AdRecord.objects.count(),
@@ -233,19 +254,28 @@ def admin_dashboard(request):
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date=yesterday
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
     elif quick_filter == 'before_yesterday':
         before_yesterday = today - timedelta(days=2)
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date=before_yesterday
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
     elif history_start_date and history_end_date:
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date__gte=history_start_date,
             end_date__lte=history_end_date
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
 
     users_for_filter = User.objects.filter(is_superuser=False).order_by('username')
 

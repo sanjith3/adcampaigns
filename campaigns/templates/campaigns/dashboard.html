@@ -66,6 +66,7 @@
                 <div class="card">
                     <div class="card-body">
                         <form method="get" class="row g-2 align-items-end">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
                             <div class="col-5">
                                 <label class="form-label">Start date</label>
                                 <input type="date" name="start" value="{{ stats_range_start }}" class="form-control" />
@@ -294,6 +295,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+{{ block.super }}
 <script>
 (function() {
     const pollUrl = "{% url 'poll_user_status' %}";

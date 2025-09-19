@@ -73,6 +73,9 @@
                         <h6 class="card-title">Active Range Filter</h6>
                         <form method="get" class="row g-2">
                             <input type="hidden" name="status" value="{{ status_filter }}" />
+                            {% if user_filter %}
+                            <input type="hidden" name="user" value="{{ user_filter }}" />
+                            {% endif %}
                             <div class="col-5">
                                 <input type="date" name="start" value="{{ stats_range_start }}" class="form-control form-control-sm" placeholder="Start" />
                             </div>
@@ -91,10 +94,10 @@
                             {% endif %}
                         </form>
                         <div class="mb-2">
-                            <a href="?status={{ status_filter }}&quick_filter=yesterday" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}">
+                            <a href="?status={{ status_filter }}&quick_filter=yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}">
                                 Yesterday
                             </a>
-                            <a href="?status={{ status_filter }}&quick_filter=before_yesterday" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}">
+                            <a href="?status={{ status_filter }}&quick_filter=before_yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}">
                                 Before Yesterday
                             </a>
                         </div>
@@ -107,6 +110,9 @@
                         <h6 class="card-title">Completed Campaigns History</h6>
                         <form method="get" class="row g-2">
                             <input type="hidden" name="status" value="{{ status_filter }}" />
+                            {% if user_filter %}
+                            <input type="hidden" name="user" value="{{ user_filter }}" />
+                            {% endif %}
                             <div class="col-5">
                                 <input type="date" name="history_start" value="{{ history_start }}" class="form-control form-control-sm" placeholder="Start" />
                             </div>
@@ -606,8 +612,36 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
 <script>
 (function() {
+    // Generate Report button handler
+    document.addEventListener('click', function(e) {
+        var generateBtn = e.target.closest('#admin-generate-report');
+        if (!generateBtn) return;
+        e.preventDefault();
+        var originalHtml = generateBtn.innerHTML;
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        fetch('/dashboard/generate-report/', { credentials: 'same-origin' })
+            .then(function(resp){ return resp.json(); })
+            .then(function(data){
+                if (data && data.ok) {
+                    alert('Report generated and emailed successfully.');
+                } else {
+                    alert('Failed to generate report' + (data && data.error ? ': ' + data.error : '.'));
+                }
+            })
+            .catch(function(err){
+                alert('Error generating report: ' + err);
+            })
+            .finally(function(){
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = originalHtml;
+            });
+    });
+
     const pollUrl = "{% url 'poll_admin_status' %}";
     let currentToken = null;
     let lastCounts = null;
