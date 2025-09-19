@@ -33,6 +33,8 @@ class AdRecord(models.Model):
     notes = models.TextField(blank=True)
 
     entry_date = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
 

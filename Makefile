@@ -1,4 +1,3 @@
-# Variables
 MANAGE=python manage.py
 
 install-dep:

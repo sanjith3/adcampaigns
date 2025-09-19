@@ -1,4 +1,4 @@
-from django.urls import path #type: ignore
+from django.urls import path
 from . import views
 
 urlpatterns = [
@@ -18,10 +18,10 @@ urlpatterns = [
     # Long-polling endpoint for admin dashboard
     path('admin-dashboard/poll/', views.poll_admin_status, name='poll_admin_status'),
 
-    # Long-polling endpoint for user dashboard
-    path('dashboard/poll/', views.poll_user_status, name='poll_user_status'),
+    # ✅ FIXED: User poll endpoint (removed the extra 'dashboard/')
+    path('poll/', views.poll_user_status, name='poll_user_status'),
+
     path('notifications/', views.notifications, name='notifications'),
     path('generate-report/', views.admin_generate_report, name='admin_generate_report'),
     path('admin-ad-history/<int:ad_id>/', views.admin_ad_history, name='admin_ad_history'),
-
 ]

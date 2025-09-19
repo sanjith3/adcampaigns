@@ -15,6 +15,7 @@ from django.contrib.auth import logout #type: ignore
 import time
 from django.views.decorators.http import require_GET #type: ignore
 from django.core.mail import send_mail, EmailMessage #type: ignore
+from django.views.decorators.cache import never_cache #type: ignore
 # import asyncio
 
 
@@ -153,7 +154,7 @@ def add_payment_details(request, ad_id):
 def admin_dashboard(request):
     # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
-    user_filter = request.GET.get('user')  # user id as string or None
+    user_filter = request.GET.get('user')
     show_follow = request.GET.get('view') == 'follow'
     history_start = request.GET.get('history_start')
     history_end = request.GET.get('history_end')
@@ -168,7 +169,6 @@ def admin_dashboard(request):
     if user_filter:
         try:
             selected_user = User.objects.get(id=int(user_filter))
-            # Do not allow filtering by admin accounts
             if not selected_user.is_superuser:
                 all_ads = all_ads.filter(user=selected_user)
             else:
@@ -176,11 +176,9 @@ def admin_dashboard(request):
         except (User.DoesNotExist, ValueError):
             selected_user = None
 
-    # Sum amount for current filtered ads (used for active/completed views)
     filtered_totals = all_ads.aggregate(total_amount=Coalesce(Sum('amount'), 0))
     filtered_total_amount = filtered_totals['total_amount']
 
-    # Daily stats for active campaigns (active today)
     today = timezone.now().date()
     active_today_qs = AdRecord.objects.filter(status='active', start_date__lte=today, end_date__gte=today)
     daily_stats = active_today_qs.aggregate(
@@ -188,7 +186,6 @@ def admin_dashboard(request):
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
     range_count = None
@@ -295,61 +292,81 @@ def admin_dashboard(request):
 
 
 def get_counts_and_signature(queryset):
+    """
+    Return a tuple of (counts_dict, signature_string) for the given queryset.
+    Signature combines all counts + latest id to detect changes efficiently.
+    """
     agg = queryset.aggregate(
-        total=Count('id'),
-        enquiry=Count('id', filter=Q(status='enquiry')),
-        pending=Count('id', filter=Q(status='pending')),
-        active=Count('id', filter=Q(status='active')),
-        completed=Count('id', filter=Q(status='completed')),
-        latest=Max('id')
+        total=Count("id"),
+        enquiry=Count("id", filter=Q(status="enquiry")),
+        pending=Count("id", filter=Q(status="pending")),
+        active=Count("id", filter=Q(status="active")),
+        completed=Count("id", filter=Q(status="completed")),
+        latest=Max("id"),
     )
+
     counts = {
-        'total': agg['total'],
-        'enquiry': agg['enquiry'],
-        'pending': agg['pending'],
-        'active': agg['active'],
-        'completed': agg['completed'],
+        "total": agg["total"] or 0,
+        "enquiry": agg["enquiry"] or 0,
+        "pending": agg["pending"] or 0,
+        "active": agg["active"] or 0,
+        "completed": agg["completed"] or 0,
     }
-    signature = f"{agg['total']}:{agg['enquiry']}:{agg['pending']}:{agg['active']}:{agg['completed']}:{agg['latest'] or 0}"
+
+    latest_id = agg["latest"] or 0
+
+    signature = f"{counts['total']}:{counts['enquiry']}:{counts['pending']}:{counts['active']}:{counts['completed']}:{latest_id}"
     return counts, signature
 
+@never_cache
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def poll_admin_status(request):
-    timeout_seconds = 25
-    client_token = request.GET.get('token') or ''
+    """
+    Long-poll endpoint for admin dashboard.
+    Checks for changes in AdRecord counts and returns new data if changed.
+    """
+    timeout_seconds = 15 
+    client_token = request.GET.get('token', '')
     start_time = time.time()
 
-    queryset = AdRecord.objects.all()
-    counts, current_sig = get_counts_and_signature(queryset)
-
+    counts, current_sig = get_counts_and_signature(AdRecord.objects.all())
     if client_token and client_token != current_sig:
         return JsonResponse({'changed': True, 'token': current_sig, 'counts': counts})
 
     while time.time() - start_time < timeout_seconds:
         time.sleep(1)
-        counts, new_sig = get_counts_and_signature(queryset)
+
+        counts, new_sig = get_counts_and_signature(AdRecord.objects.all())
         if new_sig != current_sig:
             return JsonResponse({'changed': True, 'token': new_sig, 'counts': counts})
 
     return JsonResponse({'changed': False, 'token': current_sig, 'counts': counts})
 
 
+@never_cache
 @login_required
 def poll_user_status(request):
-    timeout_seconds = 25
-    client_token = request.GET.get('token') or ''
+    """
+    Long-poll endpoint for a user's dashboard.
+    Returns updated ad counts if anything changes.
+    """
+    timeout_seconds = 15 
+    client_token = request.GET.get('token', '')
     start_time = time.time()
 
-    queryset = AdRecord.objects.filter(user=request.user)
-    counts, current_sig = get_counts_and_signature(queryset)
-
+    counts, current_sig = get_counts_and_signature(
+        AdRecord.objects.filter(user=request.user)
+    )
     if client_token and client_token != current_sig:
         return JsonResponse({'changed': True, 'token': current_sig, 'counts': counts})
 
     while time.time() - start_time < timeout_seconds:
         time.sleep(1)
-        counts, new_sig = get_counts_and_signature(queryset)
+
+        counts, new_sig = get_counts_and_signature(
+            AdRecord.objects.filter(user=request.user)
+        )
         if new_sig != current_sig:
             return JsonResponse({'changed': True, 'token': new_sig, 'counts': counts})
 
