@@ -1,6 +1,6 @@
 MANAGE=python manage.py
 
-install-dep:
+dep:
 	python -m pip install -r requirements.txt
 
 run:
