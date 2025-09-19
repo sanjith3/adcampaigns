@@ -10,9 +10,10 @@ run-glob:
 	$(MANAGE) runserver 0.0.0.0:8000
 
 migrate:
+	$(MANAGE) makemigrations
 	$(MANAGE) migrate
 
-createsuperuser: 
+su: 
 	$(MANAGE) createsuperuser
 
 prod: 
