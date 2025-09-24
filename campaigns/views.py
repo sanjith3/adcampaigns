@@ -16,7 +16,7 @@ import time
 from django.views.decorators.http import require_GET #type: ignore
 from django.core.mail import send_mail, EmailMessage #type: ignore
 from django.views.decorators.cache import never_cache #type: ignore
-
+import os
 
 def is_admin(user):
     return user.is_superuser
@@ -587,7 +587,7 @@ def admin_generate_report(request):
     subject = f"AdSoft Daily Report - {today.isoformat()}"
     body = "\n".join(lines)
 
-    recipient = 'sanjithjin@gmail.com'
+    recipient = os.getenv('recipient','sanjithmit@gmail.com')
     from django.conf import settings  # type: ignore
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
     try:
