@@ -5,6 +5,8 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('create/', views.create_ad, name='create_ad'),
     path('add-payment/<int:ad_id>/', views.add_payment_details, name='add_payment'),
+    path('hold/<int:ad_id>/', views.add_hold, name='add_hold'),
+    path('hold/<int:ad_id>/remove/', views.remove_hold, name='remove_hold'),
     path('renew/<int:ad_id>/', views.renew_ad, name='renew_ad'),
 
     # Admin URLs

@@ -20,6 +20,7 @@
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary me-2">Total Ads: {{ status_counts.all }}</span>
                 <span class="badge bg-secondary me-2">Enquiries: {{ status_counts.enquiry }}</span>
+                <span class="badge bg-dark me-2">Hold: {{ status_counts.hold }}</span>
                 <span class="badge bg-warning me-2">Pending: {{ status_counts.pending }}</span>
                 <span class="badge bg-success me-2">Active: {{ status_counts.active }}</span>
                 <span class="badge bg-info">Completed: {{ status_counts.completed }}</span>
@@ -224,6 +225,9 @@
                             <a href="?status=enquiry{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">
                                 Enquiries ({{ status_counts.enquiry }})
                             </a>
+                            <a href="?status=hold{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-dark {% if status_filter == 'hold' %}active{% endif %}">
+                                Hold ({{ status_counts.hold }})
+                            </a>
                             <a href="?status=pending{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
                                 Pending ({{ status_counts.pending }})
                             </a>
@@ -334,6 +338,8 @@
                                 <td>
                                     {% if ad.status == 'enquiry' %}
                                         <span class="text-muted">Waiting for payment</span>
+                                    {% elif ad.status == 'hold' %}
+                                        <span class="text-muted">On Hold</span>
                                     {% elif ad.status == 'pending' %}
                                         <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-warning">
                                             <i class="fas fa-check-circle"></i> Verify
@@ -678,7 +684,8 @@
             }
 
             // Reload page only if a real change occurred and token changed
-            if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'all')) {
+            // Also refresh when viewing the Hold filter so the Hold table stays live
+            if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'hold' || currentFilter === 'all')) {
                 window.location.reload();
                 return; // stop further polling on this execution
             }

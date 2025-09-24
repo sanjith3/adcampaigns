@@ -8,7 +8,7 @@ from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
 from datetime import date, timedelta
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
@@ -43,6 +43,7 @@ def dashboard(request):
     user_ads = AdRecord.objects.filter(user=request.user)
 
     enquiries = user_ads.filter(status='enquiry')
+    hold_ads = user_ads.filter(status='hold')
     pending_ads = user_ads.filter(status='pending')
     active_ads = user_ads.filter(status='active')
     completed_ads = user_ads.filter(status='completed')
@@ -92,6 +93,7 @@ def dashboard(request):
 
     context = {
         'enquiries': enquiries,
+        'hold_ads': hold_ads,
         'pending_ads': pending_ads,
         'active_ads': active_ads,
         'completed_ads': completed_ads,
@@ -132,12 +134,25 @@ def add_payment_details(request, ad_id):
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot add payment details for enquiries.')
         return redirect('admin_dashboard')
-    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='enquiry')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user)
+    if ad.status not in ['enquiry', 'hold']:
+        messages.error(request, 'Payment can only be added for enquiries or holds.')
+        return redirect('dashboard')
 
     if request.method == 'POST':
         form = PaymentDetailsForm(request.POST, instance=ad)
         if form.is_valid():
             ad = form.save(commit=False)
+            # Map custom fields when not using predefined amount
+            predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
+            if ad.amount == 0 or ad.amount not in predefined_mapping_amounts:
+                ad.custom_amount = form.cleaned_data.get('custom_amount')
+                ad.custom_days = form.cleaned_data.get('custom_days')
+                # Store amount field as entered custom amount for visibility
+                ad.amount = ad.custom_amount
+            else:
+                ad.custom_amount = None
+                ad.custom_days = None
             ad.status = 'pending'
             ad.save()
             messages.success(request, 'Payment details submitted! Waiting for admin verification.')
@@ -146,6 +161,48 @@ def add_payment_details(request, ad_id):
         form = PaymentDetailsForm(instance=ad)
 
     return render(request, 'campaigns/add_payment.html', {'form': form, 'ad': ad})
+
+
+@login_required
+def add_hold(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot change hold for user enquiries here.')
+        return redirect('admin_dashboard')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user)
+    if ad.status not in ['enquiry', 'hold']:
+        messages.error(request, 'Only enquiries or existing holds can be updated.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = HoldDetailsForm(request.POST, instance=ad)
+        if form.is_valid():
+            ad = form.save(commit=False)
+            ad.status = 'hold'
+            ad.save()
+            messages.success(request, 'Enquiry placed on hold.')
+            return redirect('dashboard')
+    else:
+        form = HoldDetailsForm(instance=ad)
+
+    return render(request, 'campaigns/add_hold.html', {'form': form, 'ad': ad})
+
+
+@login_required
+def remove_hold(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot change hold for user enquiries here.')
+        return redirect('admin_dashboard')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='hold')
+
+    if request.method == 'POST':
+        ad.status = 'enquiry'
+        ad.hold_reason = ''
+        ad.hold_until = None
+        ad.save()
+        messages.success(request, 'Hold removed. Enquiry returned to queue.')
+        return redirect('dashboard')
+
+    return redirect('dashboard')
 
 
 @login_required
@@ -228,6 +285,7 @@ def admin_dashboard(request):
     status_counts = {
         'all': AdRecord.objects.count(),
         'enquiry': AdRecord.objects.filter(status='enquiry').count(),
+        'hold': AdRecord.objects.filter(status='hold').count(),
         'pending': AdRecord.objects.filter(status='pending').count(),
         'active': AdRecord.objects.filter(status='active').count(),
         'completed': AdRecord.objects.filter(status='completed').count(),
@@ -309,6 +367,7 @@ def get_counts_and_signature(queryset):
     agg = queryset.aggregate(
         total=Count('id'),
         enquiry=Count('id', filter=Q(status='enquiry')),
+        hold=Count('id', filter=Q(status='hold')),
         pending=Count('id', filter=Q(status='pending')),
         active=Count('id', filter=Q(status='active')),
         completed=Count('id', filter=Q(status='completed')),
@@ -318,13 +377,14 @@ def get_counts_and_signature(queryset):
     counts = {
         'total': agg['total'],
         'enquiry': agg['enquiry'],
+        'hold': agg['hold'],
         'pending': agg['pending'],
         'active': agg['active'],
         'completed': agg['completed'],
     }
     signature = (
-        f"{agg['total']}:{agg['enquiry']}:{agg['pending']}:"
-        f"{agg['active']}:{agg['completed']}:{agg['latest'] or 0}:"
+        f"{agg['total']}:{agg['enquiry']}:{agg['hold']}:{agg['pending']}:" \
+        f"{agg['active']}:{agg['completed']}:{agg['latest'] or 0}:" \
         f"{agg['last_update'].timestamp() if agg['last_update'] else 0}"
     )
     return counts, signature

@@ -18,9 +18,29 @@
                     <div class="mb-3">
                         <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
                         {{ form.amount }}
+                        <div class="form-text">Select a preset or choose Other to enter custom.</div>
                         {% if form.amount.errors %}
                         <div class="text-danger">{{ form.amount.errors }}</div>
                         {% endif %}
+                    </div>
+
+                    <div id="custom-fields" class="mb-3" style="display:none;">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Amount (INR)</label>
+                                {{ form.custom_amount }}
+                                {% if form.custom_amount.errors %}
+                                <div class="text-danger">{{ form.custom_amount.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Days</label>
+                                {{ form.custom_days }}
+                                {% if form.custom_days.errors %}
+                                <div class="text-danger">{{ form.custom_days.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -41,4 +61,28 @@
         </div>
     </div>
 </div>
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function(){
+    function updateCustomVisibility(){
+        var select = document.getElementById('{{ form.amount.id_for_label }}');
+        var custom = document.getElementById('custom-fields');
+        if(!select || !custom) return;
+        var show = String(select.value) === '0'; // Only show when "Other (custom)" is selected
+        custom.style.display = show ? '' : 'none';
+    }
+    document.addEventListener('change', function(e){
+        if(e.target && e.target.id === '{{ form.amount.id_for_label }}'){
+            updateCustomVisibility();
+        }
+    });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateCustomVisibility);
+    } else {
+        updateCustomVisibility();
+    }
+})();
+</script>
+{% endblock %}
 {% endblock %}
