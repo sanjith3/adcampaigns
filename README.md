@@ -1,4 +1,4 @@
-# adSoft Campaign Management (Django)
+# AdSoft - a Add Campaign Management (Django)
 
 A Django-based application for managing advertising campaigns, including enquiry-to-activation workflows, holds, renewals, payments, and admin/user dashboards.
 
