@@ -10,6 +10,20 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.mobile_number.id_for_label }}" class="form-label">Mobile Number</label>
+                        {{ form.mobile_number }}
+                        {% if form.mobile_number.errors %}
+                        <div class="text-danger">{{ form.mobile_number.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div id="mobile-lookup-results" class="mb-3" style="display:none;">
+                        <label class="form-label">Previous records with this mobile</label>
+                        <div class="list-group" id="mobile-lookup-list"></div>
+                    </div>
+                    
                     
                     <div class="mb-3">
                         <label for="{{ form.ad_name.id_for_label }}" class="form-label">Ad Name</label>
@@ -27,13 +41,6 @@
                         {% endif %}
                     </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.mobile_number.id_for_label }}" class="form-label">Mobile Number</label>
-                        {{ form.mobile_number }}
-                        {% if form.mobile_number.errors %}
-                        <div class="text-danger">{{ form.mobile_number.errors }}</div>
-                        {% endif %}
-                    </div>
                     
                     <div class="mb-3">
                         <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
@@ -52,4 +59,68 @@
         </div>
     </div>
 </div>
+<script>
+(function() {
+    const input = document.getElementById('{{ form.mobile_number.id_for_label }}') || document.querySelector('input[name="{{ form.mobile_number.html_name }}"]');
+    const resultsWrap = document.getElementById('mobile-lookup-results');
+    const list = document.getElementById('mobile-lookup-list');
+    const endpoint = "{% url 'lookup_by_mobile' %}";
+
+    let timer = null;
+    function isTenDigits(v) { return /^\d{10}$/.test(v); }
+    function clearList() {
+        list.innerHTML = '';
+        resultsWrap.style.display = 'none';
+    }
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"]/g, function(c){
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+        });
+    }
+    function render(items) {
+        list.innerHTML = '';
+        if (!items || items.length === 0) {
+            list.innerHTML = '<div class="list-group-item text-muted">No previous records found.</div>';
+        } else {
+            items.forEach(function(item) {
+                const el = document.createElement('div');
+                el.className = 'list-group-item';
+                const adName = escapeHtml(item.ad_name);
+                const status = escapeHtml(item.status);
+                const notes = escapeHtml(item.notes || '');
+                el.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between">
+                        <strong>${adName}</strong>
+                        <span class="badge bg-secondary">${status}</span>
+                    </div>
+                    <div class="small text-muted" style="white-space:pre-wrap;">${notes}</div>
+                `;
+                list.appendChild(el);
+            });
+        }
+        resultsWrap.style.display = 'block';
+    }
+    async function lookup(v) {
+        try {
+            const url = endpoint + '?mobile=' + encodeURIComponent(v);
+            const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) { clearList(); return; }
+            const data = await resp.json();
+            if (data && data.ok) render(data.results); else clearList();
+        } catch (e) {
+            clearList();
+        }
+    }
+    function handle() {
+        const v = (input && input.value || '').trim();
+        if (!isTenDigits(v)) { clearList(); return; }
+        clearTimeout(timer);
+        timer = setTimeout(function() { lookup(v); }, 300);
+    }
+    if (input) {
+        input.addEventListener('input', handle);
+        input.addEventListener('blur', handle);
+    }
+})();
+</script>
 {% endblock %}
