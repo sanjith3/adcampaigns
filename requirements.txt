@@ -1,2 +1,5 @@
 django
 djangorestframework
+uvicorn
+mysqlclient 
+python-dotenv

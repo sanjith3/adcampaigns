@@ -28,9 +28,13 @@ class AdRecordForm(forms.ModelForm):
 
 
 class PaymentDetailsForm(forms.ModelForm):
+    use_custom = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())
+    custom_amount = forms.IntegerField(required=False, min_value=1, widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter amount (INR)'}))
+    custom_days = forms.IntegerField(required=False, min_value=1, widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter number of days'}))
+
     class Meta:
         model = AdRecord
-        fields = ['amount', 'upi_last_four']
+        fields = ['amount', 'upi_last_four', 'custom_amount', 'custom_days']
         widgets = {
             'amount': forms.Select(attrs={'class': 'form-control'}),
             'upi_last_four': forms.TextInput(attrs={
@@ -39,6 +43,35 @@ class PaymentDetailsForm(forms.ModelForm):
                 'pattern': '[0-9]{4}',
                 'title': 'Enter last 4 digits of UPI ID'
             }),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        amount = cleaned.get('amount')
+        custom_amount = cleaned.get('custom_amount')
+        custom_days = cleaned.get('custom_days')
+
+        # If the selected amount is not one of the predefined values, require custom fields
+        predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
+        is_custom = (amount == 0) or (amount not in predefined_mapping_amounts)
+
+        if is_custom:
+            if not custom_amount:
+                self.add_error('custom_amount', 'Please enter a custom amount.')
+            if not custom_days:
+                self.add_error('custom_days', 'Please enter number of days.')
+
+        # Basic format check for UPI digits already enforced by widget pattern
+        return cleaned
+
+
+class HoldDetailsForm(forms.ModelForm):
+    class Meta:
+        model = AdRecord
+        fields = ['hold_reason', 'hold_until']
+        widgets = {
+            'hold_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for hold'}),
+            'hold_until': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 

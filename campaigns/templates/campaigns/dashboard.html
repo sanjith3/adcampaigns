@@ -37,6 +37,7 @@
                 <div class="btn-group" role="group">
                     <a href="?status=all" class="btn btn-outline-primary {% if status_filter == 'all' %}active{% endif %}">All</a>
                     <a href="?status=enquiry" class="btn btn-outline-secondary {% if status_filter == 'enquiry' %}active{% endif %}">Enquiry</a>
+                    <a href="?status=hold" class="btn btn-outline-dark {% if status_filter == 'hold' %}active{% endif %}">Hold</a>
                     <a href="?status=pending" class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">Pending</a>
                     <a href="?status=active" class="btn btn-outline-success {% if status_filter == 'active' %}active{% endif %}">Active</a>
                     <a href="?status=completed" class="btn btn-outline-info {% if status_filter == 'completed' %}active{% endif %}">Completed</a>
@@ -66,6 +67,7 @@
                 <div class="card">
                     <div class="card-body">
                         <form method="get" class="row g-2 align-items-end">
+                            <input type="hidden" name="status" value="{{ status_filter }}" />
                             <div class="col-5">
                                 <label class="form-label">Start date</label>
                                 <input type="date" name="start" value="{{ stats_range_start }}" class="form-control" />
@@ -242,7 +244,86 @@
                                     <a href="{% url 'add_payment' ad.id %}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-credit-card"></i> Add Payment
                                     </a>
+                                    <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holdModal{{ ad.id }}">
+                                        <i class="fas fa-pause"></i> Add to Hold
+                                    </button>
                                     {% endif %}
+                                </td>
+                            </tr>
+
+                            <!-- Hold Modal -->
+                            <div class="modal fade" id="holdModal{{ ad.id }}" tabindex="-1" aria-labelledby="holdModalLabel{{ ad.id }}" aria-hidden="true">
+                              <div class="modal-dialog">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <h5 class="modal-title" id="holdModalLabel{{ ad.id }}">Place on Hold</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
+                                  <form method="post" action="{% url 'add_hold' ad.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                      <div class="mb-3">
+                                        <label class="form-label">Reason</label>
+                                        <textarea name="hold_reason" rows="3" class="form-control" placeholder="Reason for hold"></textarea>
+                                      </div>
+                                      <div class="mb-3">
+                                        <label class="form-label">Hold Until (optional)</label>
+                                        <input type="date" name="hold_until" class="form-control" />
+                                      </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                      <button type="submit" class="btn btn-dark">Confirm Hold</button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Hold Ads -->
+        {% if hold_ads and status_filter == 'all' or hold_ads and status_filter == 'hold' %}
+        <div class="card mb-4 border-dark">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-pause"></i> On Hold</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business Name</th>
+                                <th>Mobile Number</th>
+                                <th>Reason</th>
+                                <th>Hold Until</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in hold_ads %}
+                            <tr>
+                                <td>{{ ad.ad_name }}</td>
+                                <td>{{ ad.business_name }}</td>
+                                <td>{{ ad.mobile_number }}</td>
+                                <td>{{ ad.hold_reason|default:'-' }}</td>
+                                <td>{% if ad.hold_until %}{{ ad.hold_until|date:"M d, Y" }}{% else %}-{% endif %}</td>
+                                <td>
+                                    <a href="{% url 'add_payment' ad.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-credit-card"></i> Add Payment
+                                    </a>
+                                    <form method="post" action="{% url 'remove_hold' ad.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-play"></i> Remove Hold
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -291,7 +372,50 @@
         {% endif %}
         {% endif %}
     </div>
-    </div>
-    {% endblock %}
+</div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function() {
+    const pollUrl = "{% url 'poll_user_status' %}";
+    let currentToken = null;
 
-    
+    function scheduleNext(delayMs) {
+        setTimeout(pollOnce, delayMs);
+    }
+
+    async function pollOnce() {
+        try {
+            const url = new URL(pollUrl, window.location.origin);
+            if (currentToken) url.searchParams.set('token', currentToken);
+
+            const resp = await fetch(url.toString(), { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('Poll failed');
+
+            const data = await resp.json();
+            if (!data || typeof data.token !== 'string') throw new Error('Invalid response');
+
+            // Reload page only if real change detected
+            if (currentToken && data.changed) {
+                window.location.reload();
+                return; // stop further polling on this execution
+            }
+
+            currentToken = data.token; // update token
+            scheduleNext(1000); // poll again after 1s
+
+        } catch (e) {
+            console.warn('User poll error:', e);
+            scheduleNext(5000); // retry after 5s on error
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', pollOnce);
+    } else {
+        pollOnce();
+    }
+})();
+</script>
+{% endblock %}

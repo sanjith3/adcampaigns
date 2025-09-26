@@ -5,16 +5,18 @@ from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
 from .models import AdRecord
 from django.utils import timezone #type: ignore
-from django.db.models import Count, Sum #type: ignore
+from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
 from datetime import date, timedelta
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
+import time
 from django.views.decorators.http import require_GET #type: ignore
 from django.core.mail import send_mail, EmailMessage #type: ignore
-
+from django.views.decorators.cache import never_cache #type: ignore
+import os
 
 def is_admin(user):
     return user.is_superuser
@@ -31,7 +33,7 @@ class AlwaysLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-    # Redirect admins to admin dashboard by default
+
     if request.user.is_superuser:
         return redirect('admin_dashboard')
 
@@ -40,14 +42,13 @@ def dashboard(request):
 
     user_ads = AdRecord.objects.filter(user=request.user)
 
-    # Separate ads by status for different sections
     enquiries = user_ads.filter(status='enquiry')
+    hold_ads = user_ads.filter(status='hold')
     pending_ads = user_ads.filter(status='pending')
     active_ads = user_ads.filter(status='active')
     completed_ads = user_ads.filter(status='completed')
     follow_up_ads = completed_ads.filter(renewals__isnull=True)
 
-    # Daily stats for active campaigns (active today)
     today = timezone.now().date()
     active_today_qs = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today)
     daily_stats = active_today_qs.aggregate(
@@ -55,7 +56,6 @@ def dashboard(request):
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
     range_count = None
@@ -84,8 +84,16 @@ def dashboard(request):
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
 
+        # If viewing Active status, constrain the Active table by range
+        if status_filter == 'active':
+            active_ads = active_ads.filter(
+                start_date__gte=range_start,
+                end_date__lte=range_end
+            )
+
     context = {
         'enquiries': enquiries,
+        'hold_ads': hold_ads,
         'pending_ads': pending_ads,
         'active_ads': active_ads,
         'completed_ads': completed_ads,
@@ -104,7 +112,6 @@ def dashboard(request):
 
 @login_required
 def create_ad(request):
-    # Prevent admins from creating enquiries
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot create enquiries. Use the admin dashboard to view records.')
         return redirect('admin_dashboard')
@@ -124,16 +131,28 @@ def create_ad(request):
 
 @login_required
 def add_payment_details(request, ad_id):
-    # Prevent admins from adding payment details
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot add payment details for enquiries.')
         return redirect('admin_dashboard')
-    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='enquiry')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user)
+    if ad.status not in ['enquiry', 'hold']:
+        messages.error(request, 'Payment can only be added for enquiries or holds.')
+        return redirect('dashboard')
 
     if request.method == 'POST':
         form = PaymentDetailsForm(request.POST, instance=ad)
         if form.is_valid():
             ad = form.save(commit=False)
+            # Map custom fields when not using predefined amount
+            predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
+            if ad.amount == 0 or ad.amount not in predefined_mapping_amounts:
+                ad.custom_amount = form.cleaned_data.get('custom_amount')
+                ad.custom_days = form.cleaned_data.get('custom_days')
+                # Store amount field as entered custom amount for visibility
+                ad.amount = ad.custom_amount
+            else:
+                ad.custom_amount = None
+                ad.custom_days = None
             ad.status = 'pending'
             ad.save()
             messages.success(request, 'Payment details submitted! Waiting for admin verification.')
@@ -145,11 +164,52 @@ def add_payment_details(request, ad_id):
 
 
 @login_required
+def add_hold(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot change hold for user enquiries here.')
+        return redirect('admin_dashboard')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user)
+    if ad.status not in ['enquiry', 'hold']:
+        messages.error(request, 'Only enquiries or existing holds can be updated.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = HoldDetailsForm(request.POST, instance=ad)
+        if form.is_valid():
+            ad = form.save(commit=False)
+            ad.status = 'hold'
+            ad.save()
+            messages.success(request, 'Enquiry placed on hold.')
+            return redirect('dashboard')
+    else:
+        form = HoldDetailsForm(instance=ad)
+
+    return render(request, 'campaigns/add_hold.html', {'form': form, 'ad': ad})
+
+
+@login_required
+def remove_hold(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot change hold for user enquiries here.')
+        return redirect('admin_dashboard')
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='hold')
+
+    if request.method == 'POST':
+        ad.status = 'enquiry'
+        ad.hold_reason = ''
+        ad.hold_until = None
+        ad.save()
+        messages.success(request, 'Hold removed. Enquiry returned to queue.')
+        return redirect('dashboard')
+
+    return redirect('dashboard')
+
+
+@login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    # Get all ads with filters
     status_filter = request.GET.get('status', 'all')
-    user_filter = request.GET.get('user')  # user id as string or None
+    user_filter = request.GET.get('user')
     show_follow = request.GET.get('view') == 'follow'
     history_start = request.GET.get('history_start')
     history_end = request.GET.get('history_end')
@@ -159,12 +219,10 @@ def admin_dashboard(request):
     if status_filter != 'all':
         all_ads = all_ads.filter(status=status_filter)
 
-    # Optional user filter
     selected_user = None
     if user_filter:
         try:
             selected_user = User.objects.get(id=int(user_filter))
-            # Do not allow filtering by admin accounts
             if not selected_user.is_superuser:
                 all_ads = all_ads.filter(user=selected_user)
             else:
@@ -172,11 +230,9 @@ def admin_dashboard(request):
         except (User.DoesNotExist, ValueError):
             selected_user = None
 
-    # Sum amount for current filtered ads (used for active/completed views)
     filtered_totals = all_ads.aggregate(total_amount=Coalesce(Sum('amount'), 0))
     filtered_total_amount = filtered_totals['total_amount']
 
-    # Daily stats for active campaigns (active today)
     today = timezone.now().date()
     active_today_qs = AdRecord.objects.filter(status='active', start_date__lte=today, end_date__gte=today)
     daily_stats = active_today_qs.aggregate(
@@ -184,7 +240,6 @@ def admin_dashboard(request):
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    # Date range stats (optional, when start/end provided)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
     range_count = None
@@ -206,6 +261,9 @@ def admin_dashboard(request):
             start_date__gte=range_start,
             end_date__lte=range_end
         )
+        # Respect selected user for range stats when provided
+        if selected_user:
+            range_qs = range_qs.filter(user=selected_user)
         range_stats = range_qs.aggregate(
             count=Count('id'),
             total_amount=Coalesce(Sum('amount'), 0)
@@ -213,19 +271,28 @@ def admin_dashboard(request):
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
 
-    # Count by status for filters
+        # If viewing Active status, also constrain displayed table by range
+        if status_filter == 'active':
+            all_ads = all_ads.filter(
+                start_date__gte=range_start,
+                end_date__lte=range_end
+            )
+            # Recompute totals for the filtered set
+            filtered_total_amount = all_ads.aggregate(
+                total_amount=Coalesce(Sum('amount'), 0)
+            )['total_amount']
+
     status_counts = {
         'all': AdRecord.objects.count(),
         'enquiry': AdRecord.objects.filter(status='enquiry').count(),
+        'hold': AdRecord.objects.filter(status='hold').count(),
         'pending': AdRecord.objects.filter(status='pending').count(),
         'active': AdRecord.objects.filter(status='active').count(),
         'completed': AdRecord.objects.filter(status='completed').count(),
     }
 
-    # Follow-up ads: completed ads that do not have any renewals yet
     follow_up_ads = AdRecord.objects.filter(status='completed', renewals__isnull=True).order_by('-end_date')
 
-    # Completed history filter
     completed_history = None
     history_start_date = None
     history_end_date = None
@@ -238,7 +305,6 @@ def admin_dashboard(request):
         history_start_date = None
         history_end_date = None
 
-    # Quick filter for yesterday/before yesterday - show completed campaigns that finished on those days
     quick_filter = request.GET.get('quick_filter')
     completed_history = None
     if quick_filter == 'yesterday':
@@ -246,22 +312,29 @@ def admin_dashboard(request):
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date=yesterday
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
     elif quick_filter == 'before_yesterday':
         before_yesterday = today - timedelta(days=2)
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date=before_yesterday
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
     elif history_start_date and history_end_date:
         completed_history = AdRecord.objects.filter(
             status='completed',
             end_date__gte=history_start_date,
             end_date__lte=history_end_date
-        ).order_by('-end_date')
+        )
+        if selected_user:
+            completed_history = completed_history.filter(user=selected_user)
+        completed_history = completed_history.order_by('-end_date')
 
-    # Users list for filter dropdown
-    # Exclude admin accounts from filter list
     users_for_filter = User.objects.filter(is_superuser=False).order_by('username')
 
     context = {
@@ -287,6 +360,90 @@ def admin_dashboard(request):
         'filtered_total_amount': filtered_total_amount,
     }
     return render(request, 'campaigns/admin_dashboard.html', context)
+
+
+
+def get_counts_and_signature(queryset):
+    agg = queryset.aggregate(
+        total=Count('id'),
+        enquiry=Count('id', filter=Q(status='enquiry')),
+        hold=Count('id', filter=Q(status='hold')),
+        pending=Count('id', filter=Q(status='pending')),
+        active=Count('id', filter=Q(status='active')),
+        completed=Count('id', filter=Q(status='completed')),
+        latest=Max('id'),
+        last_update=Max('updated_at'),
+    )
+    counts = {
+        'total': agg['total'],
+        'enquiry': agg['enquiry'],
+        'hold': agg['hold'],
+        'pending': agg['pending'],
+        'active': agg['active'],
+        'completed': agg['completed'],
+    }
+    signature = (
+        f"{agg['total']}:{agg['enquiry']}:{agg['hold']}:{agg['pending']}:" \
+        f"{agg['active']}:{agg['completed']}:{agg['latest'] or 0}:" \
+        f"{agg['last_update'].timestamp() if agg['last_update'] else 0}"
+    )
+    return counts, signature
+
+
+@never_cache
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def poll_admin_status(request):
+    """
+    Long-poll endpoint for admin dashboard.
+    Checks for changes in AdRecord counts and returns new data if changed.
+    """
+    timeout_seconds = 15 
+    client_token = request.GET.get('token', '')
+    start_time = time.time()
+
+    counts, current_sig = get_counts_and_signature(AdRecord.objects.all())
+    if client_token and client_token != current_sig:
+        return JsonResponse({'changed': True, 'token': current_sig, 'counts': counts})
+
+    while time.time() - start_time < timeout_seconds:
+        time.sleep(1)
+
+        counts, new_sig = get_counts_and_signature(AdRecord.objects.all())
+        if new_sig != current_sig:
+            return JsonResponse({'changed': True, 'token': new_sig, 'counts': counts})
+
+    return JsonResponse({'changed': False, 'token': current_sig, 'counts': counts})
+
+
+@never_cache
+@login_required
+def poll_user_status(request):
+    """
+    Long-poll endpoint for a user's dashboard.
+    Returns updated ad counts if anything changes.
+    """
+    timeout_seconds = 15 
+    client_token = request.GET.get('token', '')
+    start_time = time.time()
+
+    counts, current_sig = get_counts_and_signature(
+        AdRecord.objects.filter(user=request.user)
+    )
+    if client_token and client_token != current_sig:
+        return JsonResponse({'changed': True, 'token': current_sig, 'counts': counts})
+
+    while time.time() - start_time < timeout_seconds:
+        time.sleep(1)
+
+        counts, new_sig = get_counts_and_signature(
+            AdRecord.objects.filter(user=request.user)
+        )
+        if new_sig != current_sig:
+            return JsonResponse({'changed': True, 'token': new_sig, 'counts': counts})
+
+    return JsonResponse({'changed': False, 'token': current_sig, 'counts': counts})
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -399,7 +556,6 @@ def admin_users(request):
 @login_required
 @user_passes_test(is_admin)
 def admin_delete_user(request, user_id):
-    # Only accept POST deletes and protect against self-deletion of the only superuser
     if request.method != 'POST':
         messages.error(request, 'Invalid request method.')
         return redirect('admin_users')
@@ -410,7 +566,6 @@ def admin_delete_user(request, user_id):
         messages.error(request, 'You cannot delete your own account while logged in.')
         return redirect('admin_users')
 
-    # Prevent deleting the last superuser account
     if user.is_superuser and User.objects.filter(is_superuser=True).count() <= 1:
         messages.error(request, 'Cannot delete the last admin account.')
         return redirect('admin_users')
@@ -469,7 +624,6 @@ def admin_generate_report(request):
     """
     today = timezone.now().date()
 
-    # Collect users (exclude superusers)
     users = User.objects.filter(is_superuser=False).order_by('username')
 
     lines = [f"Daily Report - {today:%b %d, %Y}"]
@@ -493,7 +647,7 @@ def admin_generate_report(request):
     subject = f"AdSoft Daily Report - {today.isoformat()}"
     body = "\n".join(lines)
 
-    recipient = 'sanjithjin@gmail.com'
+    recipient = os.getenv('recipient','sanjithmit@gmail.com')
     from django.conf import settings  # type: ignore
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
     try:
@@ -516,7 +670,6 @@ def admin_ad_history(request, ad_id):
     """Return the client/ad history HTML snippet for display in modal."""
     ad = get_object_or_404(AdRecord, id=ad_id)
 
-    # Group by business or by user depending on availability
     history_qs = AdRecord.objects.filter(business_name=ad.business_name).order_by('-entry_date')
 
     return render(request, 'campaigns/_ad_history.html', {
