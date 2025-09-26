@@ -676,3 +676,23 @@ def admin_ad_history(request, ad_id):
         'subject_ad': ad,
         'history_ads': history_qs,
     })
+
+@login_required
+@require_GET
+def lookup_by_mobile(request):
+    mobile = request.GET.get('mobile', '').strip()
+    # Basic validation: 10 digits
+    if not (mobile.isdigit() and len(mobile) == 10):
+        return JsonResponse({'ok': False, 'results': [], 'error': 'Invalid mobile'}, status=400)
+    # Limit to current user's records for privacy
+    qs = AdRecord.objects.filter(user=request.user, mobile_number=mobile).order_by('-entry_date')
+    results = [
+        {
+            'id': ad.id,
+            'ad_name': ad.ad_name,
+            'status': ad.get_status_display(),
+            'notes': ad.notes or '',
+        }
+        for ad in qs
+    ]
+    return JsonResponse({'ok': True, 'results': results})
