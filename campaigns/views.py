@@ -709,60 +709,68 @@ def lookup_by_mobile(request):
 
 
 @login_required
-@user_passes_test(is_admin)
-def day1_followup(request):
-    """View Day 1 follow-ups"""
-    followups = Day1FollowUp.objects.all().order_by('-follow_up_date')
-    
-    context = {
+def user_day1_followup(request):
+    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Day 1 Follow-ups',
+        'title': 'Your Day 1 Follow-ups',
         'followup_type': 'day1'
-    }
-    return render(request, 'campaigns/followup_table.html', context)
+    })
 
 
 @login_required
-@user_passes_test(is_admin)
-def day2_followup(request):
-    """View Day 2 follow-ups"""
-    followups = Day2FollowUp.objects.all().order_by('-follow_up_date')
-    
-    context = {
+def user_day2_followup(request):
+    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Day 2 Follow-ups',
-        'followup_type': 'day2'
-    }
-    return render(request, 'campaigns/followup_table.html', context)
-
+        'title': 'Your Day 2 Follow-ups',
+        'followup_type': 'day1'
+    })
 
 @login_required
-@user_passes_test(is_admin)
+def user_dashboard(request):
+    return render(request, 'user/dashboard.html')
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+
+@login_required
 def update_followup(request, followup_id, followup_type):
-    """Update follow-up details"""
+    """
+    Update follow-up details for Day1 or Day2.
+    Redirects back to the correct follow-up page after saving.
+    """
+    # Pick the correct model based on follow-up type
     if followup_type == 'day1':
         followup = get_object_or_404(Day1FollowUp, id=followup_id)
     elif followup_type == 'day2':
         followup = get_object_or_404(Day2FollowUp, id=followup_id)
     else:
         messages.error(request, 'Invalid follow-up type')
-        return redirect('admin_dashboard')
-    
+        return redirect('admin_dashboard')   # Fallback if type is wrong
+
+    # Handle form submission
     if request.method == 'POST':
         followup.contacted = request.POST.get('contacted') == 'on'
         followup.contact_method = request.POST.get('contact_method', '')
         followup.response = request.POST.get('response', '')
         followup.notes = request.POST.get('notes', '')
         followup.save()
-        
+
         messages.success(request, 'Follow-up updated successfully!')
-        return redirect(f'{followup_type}_followup')
-    
+        # ✅ Important: use the dash to match the name in urls.py
+        return redirect(f'{followup_type}-followup')
+
+    # Initial page load
     context = {
         'followup': followup,
-        'followup_type': followup_type
+        'followup_type': followup_type,
     }
     return render(request, 'campaigns/update_followup.html', context)
+
 
 
 @login_required
