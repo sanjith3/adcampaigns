@@ -35,4 +35,9 @@ urlpatterns = [
     # Admin Edit URLs
     path('admin-edit-enquiry/<int:ad_id>/', views.admin_edit_enquiry, name='admin_edit_enquiry'),
     path('admin-edit-hold/<int:ad_id>/', views.admin_edit_hold, name='admin_edit_hold'),
+    
+    # Follow-up URLs
+    path('day1-followup/', views.day1_followup, name='day1_followup'),
+    path('day2-followup/', views.day2_followup, name='day2_followup'),
+    path('update-followup/<int:followup_id>/<str:followup_type>/', views.update_followup, name='update_followup'),
 ]

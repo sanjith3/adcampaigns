@@ -93,3 +93,35 @@ class AdRecord(models.Model):
     def get_duration_days(self):
         """Get the duration in days based on amount"""
         return self.AMOUNT_DAYS_MAPPING.get(self.amount, 0)
+
+
+class Day1FollowUp(models.Model):
+    """First day follow-up for enquiries"""
+    ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day1_followup')
+    follow_up_date = models.DateField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+    contacted = models.BooleanField(default=False)
+    contact_method = models.CharField(max_length=50, blank=True)  # phone, email, whatsapp, etc.
+    response = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-follow_up_date']
+    
+    def __str__(self):
+        return f"Day 1 Follow-up: {self.ad_record.ad_name}"
+
+
+class Day2FollowUp(models.Model):
+    """Second day follow-up for enquiries"""
+    ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day2_followup')
+    follow_up_date = models.DateField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+    contacted = models.BooleanField(default=False)
+    contact_method = models.CharField(max_length=50, blank=True)
+    response = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-follow_up_date']
+    
+    def __str__(self):
+        return f"Day 2 Follow-up: {self.ad_record.ad_name}"

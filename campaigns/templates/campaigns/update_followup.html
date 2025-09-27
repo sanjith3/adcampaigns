@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-phone"></i> Update {{ followup_type|title }} Follow-up
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ad Name</label>
+                            <input type="text" class="form-control" value="{{ followup.ad_record.ad_name }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Business Name</label>
+                            <input type="text" class="form-control" value="{{ followup.ad_record.business_name }}" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number</label>
+                            <input type="text" class="form-control" value="{{ followup.ad_record.mobile_number }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Follow-up Date</label>
+                            <input type="text" class="form-control" value="{{ followup.follow_up_date|date:'M d, Y' }}" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="contacted" id="contacted" 
+                                   {% if followup.contacted %}checked{% endif %}>
+                            <label class="form-check-label" for="contacted">
+                                Contacted Customer
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_method" class="form-label">Contact Method</label>
+                        <select name="contact_method" id="contact_method" class="form-control">
+                            <option value="">Select method</option>
+                            <option value="phone" {% if followup.contact_method == 'phone' %}selected{% endif %}>Phone Call</option>
+                            <option value="whatsapp" {% if followup.contact_method == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+                            <option value="email" {% if followup.contact_method == 'email' %}selected{% endif %}>Email</option>
+                            <option value="sms" {% if followup.contact_method == 'sms' %}selected{% endif %}>SMS</option>
+                            <option value="other" {% if followup.contact_method == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="response" class="form-label">Customer Response</label>
+                        <textarea name="response" id="response" class="form-control" rows="3" 
+                                  placeholder="What did the customer say?">{{ followup.response }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Follow-up Notes</label>
+                        <textarea name="notes" id="notes" class="form-control" rows="3" 
+                                  placeholder="Additional notes about the follow-up">{{ followup.notes }}</textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url followup_type|add:'_followup' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Follow-up</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

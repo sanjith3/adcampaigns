@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-phone"></i> {{ title }}
+            </h1>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                {% if followup_type == 'day1' %}
+                <a href="{% url 'day2_followup' %}" class="btn btn-outline-warning">
+                    <i class="fas fa-arrow-right"></i> Day 2 Follow-ups
+                </a>
+                {% elif followup_type == 'day2' %}
+                <a href="{% url 'day1_followup' %}" class="btn btn-outline-info">
+                    <i class="fas fa-arrow-left"></i> Day 1 Follow-ups
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> {{ title }} ({{ followups.count }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if followups %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business</th>
+                                <th>Mobile</th>
+                                <th>Employee</th>
+                                <th>Follow-up Date</th>
+                                <th>Contacted</th>
+                                <th>Contact Method</th>
+                                <th>Response</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for followup in followups %}
+                            <tr>
+                                <td>{{ followup.ad_record.ad_name }}</td>
+                                <td>{{ followup.ad_record.business_name }}</td>
+                                <td>{{ followup.ad_record.mobile_number }}</td>
+                                <td>
+                                    {% if followup.ad_record.user %}
+                                        {{ followup.ad_record.user.get_full_name|default:followup.ad_record.user.username }}
+                                    {% else %}
+                                        <span class="text-muted">(deleted user)</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ followup.follow_up_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if followup.contacted %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ followup.contact_method|default:"-" }}</td>
+                                <td>
+                                    {% if followup.response %}
+                                        <span class="text-success">{{ followup.response|truncatechars:30 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">No response</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'update_followup' followup.id followup_type %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i> Update
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No {{ title|lower }} found.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test #typ
 from django.contrib import messages #type: ignore
 from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
-from .models import AdRecord
+from .models import AdRecord, Day1FollowUp, Day2FollowUp
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
@@ -706,6 +706,63 @@ def lookup_by_mobile(request):
         for ad in qs
     ]
     return JsonResponse({'ok': True, 'results': results})
+
+
+@login_required
+@user_passes_test(is_admin)
+def day1_followup(request):
+    """View Day 1 follow-ups"""
+    followups = Day1FollowUp.objects.all().order_by('-follow_up_date')
+    
+    context = {
+        'followups': followups,
+        'title': 'Day 1 Follow-ups',
+        'followup_type': 'day1'
+    }
+    return render(request, 'campaigns/followup_table.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def day2_followup(request):
+    """View Day 2 follow-ups"""
+    followups = Day2FollowUp.objects.all().order_by('-follow_up_date')
+    
+    context = {
+        'followups': followups,
+        'title': 'Day 2 Follow-ups',
+        'followup_type': 'day2'
+    }
+    return render(request, 'campaigns/followup_table.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def update_followup(request, followup_id, followup_type):
+    """Update follow-up details"""
+    if followup_type == 'day1':
+        followup = get_object_or_404(Day1FollowUp, id=followup_id)
+    elif followup_type == 'day2':
+        followup = get_object_or_404(Day2FollowUp, id=followup_id)
+    else:
+        messages.error(request, 'Invalid follow-up type')
+        return redirect('admin_dashboard')
+    
+    if request.method == 'POST':
+        followup.contacted = request.POST.get('contacted') == 'on'
+        followup.contact_method = request.POST.get('contact_method', '')
+        followup.response = request.POST.get('response', '')
+        followup.notes = request.POST.get('notes', '')
+        followup.save()
+        
+        messages.success(request, 'Follow-up updated successfully!')
+        return redirect(f'{followup_type}_followup')
+    
+    context = {
+        'followup': followup,
+        'followup_type': followup_type
+    }
+    return render(request, 'campaigns/update_followup.html', context)
 
 
 @login_required
