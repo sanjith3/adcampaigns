@@ -12,7 +12,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = 'django-insecure-vmkxe%v+n%+9ds0(33e02ork$5h&!3tg-_-zj8-nl1xja9&%h*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
@@ -100,6 +100,11 @@ STATIC_URL = 'static/'
 # Login redirects
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/login/'
+
+# Session configuration to prevent timeout issues
+SESSION_COOKIE_AGE = 3600 * 24  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

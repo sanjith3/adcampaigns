@@ -112,9 +112,15 @@ def dashboard(request):
 
 @login_required
 def create_ad(request):
+    # Debug: Check if user is authenticated
+    if not request.user.is_authenticated:
+        messages.error(request, 'You must be logged in to create an enquiry.')
+        return redirect('login')
+    
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot create enquiries. Use the admin dashboard to view records.')
         return redirect('admin_dashboard')
+    
     if request.method == 'POST':
         form = AdRecordForm(request.POST)
         if form.is_valid():
@@ -123,6 +129,9 @@ def create_ad(request):
             ad.save()
             messages.success(request, 'Ad enquiry created successfully!')
             return redirect('dashboard')
+        else:
+            # Debug: Show form errors
+            messages.error(request, f'Form validation failed: {form.errors}')
     else:
         form = AdRecordForm()
 
