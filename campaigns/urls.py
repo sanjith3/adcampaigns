@@ -26,4 +26,5 @@ urlpatterns = [
     path('notifications/', views.notifications, name='notifications'),
     path('generate-report/', views.admin_generate_report, name='admin_generate_report'),
     path('admin-ad-history/<int:ad_id>/', views.admin_ad_history, name='admin_ad_history'),
+    path('lookup-by-mobile/', views.lookup_by_mobile, name='lookup_by_mobile'),
 ]

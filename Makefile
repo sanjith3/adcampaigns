@@ -23,5 +23,5 @@ prod-glob:
 	uvicorn adsoft.asgi:application --reload --host 0.0.0.0 --port 8000
 
 clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -name "*.pyc" -exec rm -f {} +
+	pwsh -NoProfile -Command "Get-ChildItem -Path . -Recurse -Directory -Name '__pycache__' | ForEach-Object { Remove-Item -Path $$_.FullName -Recurse -Force -ErrorAction SilentlyContinue }"
+	pwsh -NoProfile -Command "Get-ChildItem -Path . -Recurse -File -Name '*.pyc' | ForEach-Object { Remove-Item -Path $$_.FullName -Force -ErrorAction SilentlyContinue }"
