@@ -27,4 +27,12 @@ urlpatterns = [
     path('generate-report/', views.admin_generate_report, name='admin_generate_report'),
     path('admin-ad-history/<int:ad_id>/', views.admin_ad_history, name='admin_ad_history'),
     path('lookup-by-mobile/', views.lookup_by_mobile, name='lookup_by_mobile'),
+    
+    # Edit URLs
+    path('edit-enquiry/<int:ad_id>/', views.edit_enquiry, name='edit_enquiry'),
+    path('edit-hold/<int:ad_id>/', views.edit_hold, name='edit_hold'),
+    
+    # Admin Edit URLs
+    path('admin-edit-enquiry/<int:ad_id>/', views.admin_edit_enquiry, name='admin_edit_enquiry'),
+    path('admin-edit-hold/<int:ad_id>/', views.admin_edit_hold, name='admin_edit_hold'),
 ]

@@ -244,6 +244,9 @@
                                     <a href="{% url 'add_payment' ad.id %}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-credit-card"></i> Add Payment
                                     </a>
+                                    <a href="{% url 'edit_enquiry' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
                                     <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holdModal{{ ad.id }}">
                                         <i class="fas fa-pause"></i> Add to Hold
                                     </button>
@@ -317,6 +320,9 @@
                                 <td>
                                     <a href="{% url 'add_payment' ad.id %}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-credit-card"></i> Add Payment
+                                    </a>
+                                    <a href="{% url 'edit_hold' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i> Edit
                                     </a>
                                     <form method="post" action="{% url 'remove_hold' ad.id %}" style="display:inline;">
                                         {% csrf_token %}

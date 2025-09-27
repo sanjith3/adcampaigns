@@ -8,7 +8,7 @@ from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
 from datetime import date, timedelta
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm, EditEnquiryForm, EditHoldForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
@@ -695,6 +695,7 @@ def lookup_by_mobile(request):
         return JsonResponse({'ok': False, 'results': [], 'error': 'Invalid mobile'}, status=400)
     # Limit to current user's records for privacy
     qs = AdRecord.objects.filter(user=request.user, mobile_number=mobile).order_by('-entry_date')
+    print(qs)
     results = [
         {
             'id': ad.id,
@@ -705,3 +706,77 @@ def lookup_by_mobile(request):
         for ad in qs
     ]
     return JsonResponse({'ok': True, 'results': results})
+
+
+@login_required
+def edit_enquiry(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot edit enquiries. Use the admin dashboard.')
+        return redirect('admin_dashboard')
+    
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='enquiry')
+    
+    if request.method == 'POST':
+        form = EditEnquiryForm(request.POST, instance=ad)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Enquiry updated successfully!')
+            return redirect('dashboard')
+    else:
+        form = EditEnquiryForm(instance=ad)
+    
+    return render(request, 'campaigns/edit_enquiry.html', {'form': form, 'ad': ad})
+
+
+@login_required
+def edit_hold(request, ad_id):
+    if request.user.is_superuser:
+        messages.error(request, 'Admins cannot edit holds. Use the admin dashboard.')
+        return redirect('admin_dashboard')
+    
+    ad = get_object_or_404(AdRecord, id=ad_id, user=request.user, status='hold')
+    
+    if request.method == 'POST':
+        form = EditHoldForm(request.POST, instance=ad)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Hold record updated successfully!')
+            return redirect('dashboard')
+    else:
+        form = EditHoldForm(instance=ad)
+    
+    return render(request, 'campaigns/edit_hold.html', {'form': form, 'ad': ad})
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_edit_enquiry(request, ad_id):
+    ad = get_object_or_404(AdRecord, id=ad_id, status='enquiry')
+    
+    if request.method == 'POST':
+        form = EditEnquiryForm(request.POST, instance=ad)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Enquiry updated successfully!')
+            return redirect('admin_dashboard')
+    else:
+        form = EditEnquiryForm(instance=ad)
+    
+    return render(request, 'campaigns/admin_edit_enquiry.html', {'form': form, 'ad': ad})
+
+
+@login_required
+@user_passes_test(is_admin)
+def admin_edit_hold(request, ad_id):
+    ad = get_object_or_404(AdRecord, id=ad_id, status='hold')
+    
+    if request.method == 'POST':
+        form = EditHoldForm(request.POST, instance=ad)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Hold record updated successfully!')
+            return redirect('admin_dashboard')
+    else:
+        form = EditHoldForm(instance=ad)
+    
+    return render(request, 'campaigns/admin_edit_hold.html', {'form': form, 'ad': ad})

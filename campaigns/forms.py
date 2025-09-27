@@ -147,3 +147,51 @@ class AdminSetPasswordForm(forms.Form):
         if p1 and len(p1) < 8:
             raise forms.ValidationError("Password must be at least 8 characters long")
         return cleaned_data
+
+
+class EditEnquiryForm(forms.ModelForm):
+    class Meta:
+        model = AdRecord
+        fields = ['ad_name', 'business_name', 'mobile_number', 'notes']
+        widgets = {
+            'ad_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'business_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mobile_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '10',
+                'pattern': '[0-9]{10}',
+                'title': 'Enter 10 digit mobile number'
+            }),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean_mobile_number(self):
+        mobile = self.cleaned_data.get('mobile_number', '').strip()
+        if mobile and (not mobile.isdigit() or len(mobile) != 10):
+            raise forms.ValidationError('Enter a valid 10 digit mobile number')
+        return mobile
+
+
+class EditHoldForm(forms.ModelForm):
+    class Meta:
+        model = AdRecord
+        fields = ['ad_name', 'business_name', 'mobile_number', 'notes', 'hold_reason', 'hold_until']
+        widgets = {
+            'ad_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'business_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mobile_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '10',
+                'pattern': '[0-9]{10}',
+                'title': 'Enter 10 digit mobile number'
+            }),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'hold_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for hold'}),
+            'hold_until': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+    def clean_mobile_number(self):
+        mobile = self.cleaned_data.get('mobile_number', '').strip()
+        if mobile and (not mobile.isdigit() or len(mobile) != 10):
+            raise forms.ValidationError('Enter a valid 10 digit mobile number')
+        return mobile
