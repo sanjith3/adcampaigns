@@ -733,44 +733,41 @@ def user_dashboard(request):
 
 
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib import messages
-
 @login_required
 def update_followup(request, followup_id, followup_type):
-    """
-    Update follow-up details for Day1 or Day2.
-    Redirects back to the correct follow-up page after saving.
-    """
-    # Pick the correct model based on follow-up type
+    """Update follow-up details"""
+    
+    # Get the correct follow-up object
     if followup_type == 'day1':
         followup = get_object_or_404(Day1FollowUp, id=followup_id)
     elif followup_type == 'day2':
         followup = get_object_or_404(Day2FollowUp, id=followup_id)
     else:
         messages.error(request, 'Invalid follow-up type')
-        return redirect('admin_dashboard')   # Fallback if type is wrong
-
-    # Handle form submission
+        return redirect('user_dashboard')  # fallback to user dashboard
+    
+    # Handle POST request to update follow-up
     if request.method == 'POST':
         followup.contacted = request.POST.get('contacted') == 'on'
         followup.contact_method = request.POST.get('contact_method', '')
         followup.response = request.POST.get('response', '')
         followup.notes = request.POST.get('notes', '')
         followup.save()
-
+        
         messages.success(request, 'Follow-up updated successfully!')
-        # ✅ Important: use the dash to match the name in urls.py
-        return redirect(f'{followup_type}-followup')
-
-    # Initial page load
+        
+        # Redirect to the correct follow-up list page
+        if followup_type == 'day1':
+            return redirect('user_day1_followup')
+        elif followup_type == 'day2':
+            return redirect('user_day2_followup')
+    
+    # Render the template with context
     context = {
         'followup': followup,
-        'followup_type': followup_type,
+        'followup_type': followup_type
     }
     return render(request, 'campaigns/update_followup.html', context)
-
 
 
 @login_required
