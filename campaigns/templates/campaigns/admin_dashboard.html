@@ -94,14 +94,7 @@
                             </div>
                             {% endif %}
                         </form>
-                        <div class="mb-2">
-                            <a href="?status={{ status_filter }}&quick_filter=yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}" data-filter="yesterday">
-                                <i class="fas fa-calendar-day me-1"></i>Yesterday
-                            </a>
-                            <a href="?status={{ status_filter }}&quick_filter=before_yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}" data-filter="before_yesterday">
-                                <i class="fas fa-calendar-minus me-1"></i>Before Yesterday
-                            </a>
-                        </div>
+                 
                     </div>
                 </div>
             </div>
@@ -131,6 +124,14 @@
                             </div>
                             {% endif %}
                         </form>
+                        <div class="mb-2">
+                            <a href="?status={{ status_filter }}&quick_filter=yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm me-1 {% if quick_filter == 'yesterday' %}active{% endif %}" data-filter="yesterday">
+                                <i class="fas fa-calendar-day me-1"></i>Yesterday
+                            </a>
+                            <a href="?status={{ status_filter }}&quick_filter=before_yesterday{% if user_filter %}&user={{ user_filter }}{% endif %}" class="btn btn-outline-warning btn-sm {% if quick_filter == 'before_yesterday' %}active{% endif %}" data-filter="before_yesterday">
+                                <i class="fas fa-calendar-minus me-1"></i>Before Yesterday
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
