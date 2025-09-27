@@ -37,7 +37,8 @@ urlpatterns = [
     path('admin-edit-hold/<int:ad_id>/', views.admin_edit_hold, name='admin_edit_hold'),
     
     # Follow-up URLs
-    path('day1-followup/', views.day1_followup, name='day1_followup'),
-    path('day2-followup/', views.day2_followup, name='day2_followup'),
+        path('user/day1-followup/', views.user_day1_followup, name='user_day1_followup'),
+        path('user/day2-followup/', views.user_day2_followup, name='user_day2_followup'),
+        path('user/dashboard/', views.user_dashboard, name='user_dashboard'),
     path('update-followup/<int:followup_id>/<str:followup_type>/', views.update_followup, name='update_followup'),
 ]

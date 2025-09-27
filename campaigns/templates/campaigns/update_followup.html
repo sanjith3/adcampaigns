@@ -70,7 +70,11 @@
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url followup_type|add:'_followup' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        {% if followup_type == 'day1' %}
+                            <a href="{% url 'user_day1_followup' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        {% elif followup_type == 'day2' %}
+                            <a href="{% url 'user_day2_followup' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary">Update Follow-up</button>
                     </div>
                 </form>

@@ -101,6 +101,12 @@ STATIC_URL = 'static/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/login/'
 
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # default
+SESSION_COOKIE_AGE = 1209600  # seconds (2 weeks default)
+SESSION_SAVE_EVERY_REQUEST = False
+
+
 # Session configuration to prevent timeout issues
 SESSION_COOKIE_AGE = 3600 * 24  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True

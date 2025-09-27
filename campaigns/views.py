@@ -709,45 +709,44 @@ def lookup_by_mobile(request):
 
 
 @login_required
-@user_passes_test(is_admin)
-def day1_followup(request):
-    """View Day 1 follow-ups"""
-    followups = Day1FollowUp.objects.all().order_by('-follow_up_date')
-    
-    context = {
+def user_day1_followup(request):
+    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Day 1 Follow-ups',
+        'title': 'Your Day 1 Follow-ups',
         'followup_type': 'day1'
-    }
-    return render(request, 'campaigns/followup_table.html', context)
+    })
 
 
 @login_required
-@user_passes_test(is_admin)
-def day2_followup(request):
-    """View Day 2 follow-ups"""
-    followups = Day2FollowUp.objects.all().order_by('-follow_up_date')
-    
-    context = {
+def user_day2_followup(request):
+    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Day 2 Follow-ups',
-        'followup_type': 'day2'
-    }
-    return render(request, 'campaigns/followup_table.html', context)
+        'title': 'Your Day 2 Follow-ups',
+        'followup_type': 'day1'
+    })
+
+@login_required
+def user_dashboard(request):
+    return render(request, 'user/dashboard.html')
+
 
 
 @login_required
-@user_passes_test(is_admin)
 def update_followup(request, followup_id, followup_type):
     """Update follow-up details"""
+    
+    # Get the correct follow-up object
     if followup_type == 'day1':
         followup = get_object_or_404(Day1FollowUp, id=followup_id)
     elif followup_type == 'day2':
         followup = get_object_or_404(Day2FollowUp, id=followup_id)
     else:
         messages.error(request, 'Invalid follow-up type')
-        return redirect('admin_dashboard')
+        return redirect('user_dashboard')  # fallback to user dashboard
     
+    # Handle POST request to update follow-up
     if request.method == 'POST':
         followup.contacted = request.POST.get('contacted') == 'on'
         followup.contact_method = request.POST.get('contact_method', '')
@@ -756,8 +755,14 @@ def update_followup(request, followup_id, followup_type):
         followup.save()
         
         messages.success(request, 'Follow-up updated successfully!')
-        return redirect(f'{followup_type}_followup')
+        
+        # Redirect to the correct follow-up list page
+        if followup_type == 'day1':
+            return redirect('user_day1_followup')
+        elif followup_type == 'day2':
+            return redirect('user_day2_followup')
     
+    # Render the template with context
     context = {
         'followup': followup,
         'followup_type': followup_type

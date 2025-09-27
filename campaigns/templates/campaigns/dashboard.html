@@ -27,6 +27,14 @@
                         <span id="user-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span>
                     </a>
                 {% endif %}
+                <a href="{% url 'user_day1_followup' %}" class="btn btn-outline-info">
+                    <i class="fas fa-phone"></i> Day 1 Follow-ups
+                </a>
+                <a href="{% url 'user_day2_followup' %}" class="btn btn-outline-warning">
+                    <i class="fas fa-phone-alt"></i> Day 2 Follow-ups
+                </a>
+                
+                
             </div>
         </div>
 
