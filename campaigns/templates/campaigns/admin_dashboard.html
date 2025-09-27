@@ -338,8 +338,14 @@
                                 <td>
                                     {% if ad.status == 'enquiry' %}
                                         <span class="text-muted">Waiting for payment</span>
+                                        <a href="{% url 'admin_edit_enquiry' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
                                     {% elif ad.status == 'hold' %}
                                         <span class="text-muted">On Hold</span>
+                                        <a href="{% url 'admin_edit_hold' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
                                     {% elif ad.status == 'pending' %}
                                         <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-warning">
                                             <i class="fas fa-check-circle"></i> Verify
