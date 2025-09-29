@@ -526,6 +526,18 @@ def renew_ad(request, ad_id):
                 amount=form.cleaned_data['amount'],
                 upi_last_four=form.cleaned_data['upi_last_four']
             )
+            
+            # Handle custom amount and days like in add_payment_details
+            predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
+            if new_ad.amount == 0 or new_ad.amount not in predefined_mapping_amounts:
+                new_ad.custom_amount = form.cleaned_data.get('custom_amount')
+                new_ad.custom_days = form.cleaned_data.get('custom_days')
+                # Store amount field as entered custom amount for visibility
+                new_ad.amount = new_ad.custom_amount
+            else:
+                new_ad.custom_amount = None
+                new_ad.custom_days = None
+                
             new_ad.save()
 
             messages.success(request, 'Renewal submitted! Waiting for admin verification.')
