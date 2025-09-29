@@ -761,6 +761,9 @@ def update_followup(request, followup_id, followup_type):
             return redirect('user_day1_followup')
         elif followup_type == 'day2':
             return redirect('user_day2_followup')
+        else:
+            return redirect('user_dashboard')
+
     
     # Render the template with context
     context = {
