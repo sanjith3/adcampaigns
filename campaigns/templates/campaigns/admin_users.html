@@ -58,7 +58,7 @@
                                 <th>Username</th>
                                 <th>Name</th>
                                 <th>Email</th>
-                                <!-- <th>Password (hash)</th> -->
+                                <th>Target Amount</th>
                                 <th>Role</th>
                                 <th>Actions</th>
                             </tr>
@@ -70,6 +70,13 @@
                                 <td>{{ u.get_full_name|default:'-' }}</td>
                                 <td>{{ u.email|default:'-' }}</td>
                                 <td>
+                                    {% if u.profile.target_amount %}
+                                        ₹{{ u.profile.target_amount }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     {% if u.is_superuser %}
                                         <span class="badge bg-danger">Admin</span>
                                     {% else %}
@@ -78,15 +85,32 @@
                                 </td>
                                 <td>
                                     {% if u != user %}
-                                    <form method="post" action="{% url 'admin_delete_user' u.id %}" class="d-inline" onsubmit="return confirm('Delete user {{ u.username }}?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                    <a href="{% url 'admin_set_password' u.id %}" class="btn btn-sm btn-outline-primary ms-1">
-                                        <i class="fas fa-key"></i> Set password
-                                    </a>
+                                    <div class="btn-group btn-group-sm">
+                                        <!-- Set Target Button -->
+                                        <a href="{% url 'admin_set_target' u.id %}" 
+                                           class="btn btn-outline-warning" 
+                                           title="Set Target">
+                                            <i class="fas fa-bullseye"></i> Target
+                                        </a>
+                                        
+                                        <!-- Set Password Button -->
+                                        <a href="{% url 'admin_set_password' u.id %}" 
+                                           class="btn btn-outline-primary" 
+                                           title="Set Password">
+                                            <i class="fas fa-key"></i>
+                                        </a>
+                                        
+                                        <!-- Delete Button -->
+                                        <form method="post" 
+                                              action="{% url 'admin_delete_user' u.id %}" 
+                                              class="d-inline" 
+                                              onsubmit="return confirm('Delete user {{ u.username }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger" title="Delete User">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                     {% else %}
                                     <span class="text-muted">Current user</span>
                                     {% endif %}
@@ -101,5 +125,3 @@
     </div>
 </div>
 {% endblock %}
-
-

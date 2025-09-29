@@ -59,7 +59,7 @@
                 <div class="card text-white bg-success">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{ stats_active_today_count }}</h5>
-                        <p class="card-text mb-0">Active Today</p>
+                        <p class="card-text mb-0">Total Ad</p>
                     </div>
                 </div>
             </div>
@@ -67,10 +67,37 @@
                 <div class="card text-white bg-primary">
                     <div class="card-body text-center">
                         <h5 class="card-title">₹{{ stats_active_today_amount }}</h5>
-                        <p class="card-text mb-0">Amount Total (Today)</p>
+                        <p class="card-text mb-0">Amount Total (This Month)</p>
                     </div>
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="card text-white {% if target_progress.remaining <= 0 %}bg-success{% elif target_progress.progress_percentage >= 75 %}bg-warning{% else %}bg-info{% endif %}">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">₹{{ target_progress.achieved }} / ₹{{ target_progress.target }}</h5>
+                        <p class="card-text mb-0">
+                            {% if target_progress.remaining > 0 %}
+                                ₹{{ target_progress.remaining }} to target
+                            {% else %}
+                                Target Achieved! 🎉
+                            {% endif %}
+                        </p>
+                        {% if target_progress.target > 0 %}
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-light" 
+                                 role="progressbar" 
+                                 style="width: {{ target_progress.progress_percentage }}%;"
+                                 aria-valuenow="{{ target_progress.progress_percentage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="mt-1 d-block">{{ target_progress.progress_percentage|floatformat:0 }}% Complete</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">

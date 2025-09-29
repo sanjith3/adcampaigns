@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Set Target for {{ target_user.get_full_name|default:target_user.username }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.target_amount.id_for_label }}" class="form-label">
+                                {{ form.target_amount.label }}
+                            </label>
+                            {{ form.target_amount }}
+                            {% if form.target_amount.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.target_amount.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Enter the monthly target amount in Indian Rupees.</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'admin_users' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Users
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Set Target
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

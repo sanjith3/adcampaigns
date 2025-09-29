@@ -195,3 +195,17 @@ class EditHoldForm(forms.ModelForm):
         if mobile and (not mobile.isdigit() or len(mobile) != 10):
             raise forms.ValidationError('Enter a valid 10 digit mobile number')
         return mobile
+
+# Add this to your existing forms.py
+class SetTargetForm(forms.Form):
+    target_amount = forms.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        min_value=0,
+        label="Monthly Target Amount (₹)",
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter target amount in rupees',
+            'step': '0.01'
+        })
+    )

@@ -3,7 +3,26 @@ from django.contrib.auth.models import User #type: ignore
 from django.utils import timezone #type: ignore
 from datetime import timedelta
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    target_amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        verbose_name="Monthly Target (₹)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.user.username} - Target: ₹{self.target_amount}"
+
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
+
+# Your existing AdRecord model remains the same
 class AdRecord(models.Model):
     STATUS_CHOICES = [
         ('enquiry', 'Enquiry'),
@@ -95,6 +114,7 @@ class AdRecord(models.Model):
         return self.AMOUNT_DAYS_MAPPING.get(self.amount, 0)
 
 
+# Your existing Day1FollowUp and Day2FollowUp models remain the same
 class Day1FollowUp(models.Model):
     """First day follow-up for enquiries"""
     ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day1_followup')
@@ -125,3 +145,18 @@ class Day2FollowUp(models.Model):
     
     def __str__(self):
         return f"Day 2 Follow-up: {self.ad_record.ad_name}"
+
+
+# Add signals to automatically create UserProfile when User is created
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

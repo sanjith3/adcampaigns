@@ -3,12 +3,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test #typ
 from django.contrib import messages #type: ignore
 from django.http import JsonResponse #type: ignore
 from django.db import transaction #type: ignore
-from .models import AdRecord, Day1FollowUp, Day2FollowUp
+from .models import AdRecord, Day1FollowUp, Day2FollowUp,UserProfile  
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
 from datetime import date, timedelta
-from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm, EditEnquiryForm, EditHoldForm
+from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm, EditEnquiryForm, EditHoldForm, SetTargetForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
 from django.contrib.auth import logout #type: ignore
@@ -33,7 +33,6 @@ class AlwaysLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-
     if request.user.is_superuser:
         return redirect('admin_dashboard')
 
@@ -49,47 +48,38 @@ def dashboard(request):
     completed_ads = user_ads.filter(status='completed')
     follow_up_ads = completed_ads.filter(renewals__isnull=True)
 
-    today = timezone.now().date()
-    active_today_qs = user_ads.filter(status='active', start_date__lte=today, end_date__gte=today)
-    daily_stats = active_today_qs.aggregate(
+    # ✅ Monthly Stats
+    now = timezone.now()
+    month_start = date(now.year, now.month, 1)
+    monthly_stats = user_ads.filter(
+        start_date__gte=month_start,
+        start_date__lte=now
+    ).aggregate(
         count=Count('id'),
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    start_str = request.GET.get('start')
-    end_str = request.GET.get('end')
-    range_count = None
-    range_amount = None
-    range_start = None
-    range_end = None
+    # ✅ Target Progress Calculation
     try:
-        if start_str:
-            range_start = date.fromisoformat(start_str)
-        if end_str:
-            range_end = date.fromisoformat(end_str)
-    except ValueError:
-        range_start = None
-        range_end = None
+        user_profile = UserProfile.objects.get(user=request.user)
+        target_amount = user_profile.target_amount
+    except UserProfile.DoesNotExist:
+        target_amount = 0
 
-    if range_start and range_end:
-        range_qs = user_ads.filter(
-            status='active',
-            start_date__gte=range_start,
-            end_date__lte=range_end
-        )
-        range_stats = range_qs.aggregate(
-            count=Count('id'),
-            total_amount=Coalesce(Sum('amount'), 0)
-        )
-        range_count = range_stats['count']
-        range_amount = range_stats['total_amount']
+    achieved_amount = monthly_stats['total_amount'] or 0
+    remaining_amount = max(0, target_amount - achieved_amount)
+    
+    if target_amount > 0:
+        progress_percentage = min(100, (achieved_amount / target_amount) * 100)
+    else:
+        progress_percentage = 0
 
-        # If viewing Active status, constrain the Active table by range
-        if status_filter == 'active':
-            active_ads = active_ads.filter(
-                start_date__gte=range_start,
-                end_date__lte=range_end
-            )
+    target_progress = {
+        'target': target_amount,
+        'achieved': achieved_amount,
+        'remaining': remaining_amount,
+        'progress_percentage': progress_percentage
+    }
 
     context = {
         'enquiries': enquiries,
@@ -100,12 +90,9 @@ def dashboard(request):
         'follow_up_ads': follow_up_ads,
         'status_filter': status_filter,
         'show_follow': show_follow,
-        'stats_active_today_count': daily_stats['count'],
-        'stats_active_today_amount': daily_stats['total_amount'],
-        'stats_range_count': range_count,
-        'stats_range_amount': range_amount,
-        'stats_range_start': start_str or '',
-        'stats_range_end': end_str or '',
+        'stats_active_today_count': monthly_stats['count'],
+        'stats_active_today_amount': monthly_stats['total_amount'],
+        'target_progress': target_progress,  # Add this to context
     }
     return render(request, 'campaigns/dashboard.html', context)
 
@@ -857,3 +844,29 @@ def admin_edit_hold(request, ad_id):
         form = EditHoldForm(instance=ad)
     
     return render(request, 'campaigns/admin_edit_hold.html', {'form': form, 'ad': ad})
+
+@login_required
+@user_passes_test(is_admin)
+def admin_set_target(request, user_id):
+    target_user = get_object_or_404(User, id=user_id)
+    
+    # Get or create user profile
+    user_profile, created = UserProfile.objects.get_or_create(user=target_user)
+    
+    if request.method == 'POST':
+        form = SetTargetForm(request.POST)
+        if form.is_valid():
+            target_amount = form.cleaned_data['target_amount']
+            user_profile.target_amount = target_amount
+            user_profile.save()
+            
+            messages.success(request, f'Target of ₹{target_amount} set successfully for {target_user.username}.')
+            return redirect('admin_users')
+    else:
+        # Pre-populate with current target if exists
+        form = SetTargetForm(initial={'target_amount': user_profile.target_amount})
+    
+    return render(request, 'campaigns/admin_set_target.html', {
+        'form': form, 
+        'target_user': target_user
+    })
