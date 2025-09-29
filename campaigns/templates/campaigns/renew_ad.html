@@ -11,13 +11,44 @@
                 <p class="text-muted">Business: <strong>{{ original_ad.business_name }}</strong></p>
                 <form method="post">
                     {% csrf_token %}
+                    
+                    <!-- Amount Selection -->
                     <div class="mb-3">
-                        <label class="form-label">Amount</label>
+                        <label class="form-label">Select Amount Package</label>
                         {{ form.amount }}
                         {% if form.amount.errors %}
                             <div class="text-danger small">{{ form.amount.errors.0 }}</div>
                         {% endif %}
+                        <div class="form-text">
+                            Choose from predefined packages or select "Other" for custom amount
+                        </div>
                     </div>
+
+                    <!-- Custom Amount Fields (initially hidden) -->
+                    <div id="custom-amount-fields" class="border p-3 rounded mb-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Custom Amount (INR)</label>
+                                    {{ form.custom_amount }}
+                                    {% if form.custom_amount.errors %}
+                                        <div class="text-danger small">{{ form.custom_amount.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Number of Days</label>
+                                    {{ form.custom_days }}
+                                    {% if form.custom_days.errors %}
+                                        <div class="text-danger small">{{ form.custom_days.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UPI Details -->
                     <div class="mb-3">
                         <label class="form-label">Last 4 digits of UPI ID</label>
                         {{ form.upi_last_four }}
@@ -25,6 +56,7 @@
                             <div class="text-danger small">{{ form.upi_last_four.errors.0 }}</div>
                         {% endif %}
                     </div>
+
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-paper-plane"></i> Submit Renewal
                     </button>
@@ -34,6 +66,43 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const amountField = document.getElementById('id_amount');
+    const customAmountFields = document.getElementById('custom-amount-fields');
+    const customAmountInput = document.getElementById('id_custom_amount');
+    const customDaysInput = document.getElementById('id_custom_days');
+
+    function toggleCustomFields() {
+        if (amountField.value === '0') {
+            customAmountFields.style.display = 'block';
+            // Make custom fields required when visible
+            customAmountInput.required = true;
+            customDaysInput.required = true;
+        } else {
+            customAmountFields.style.display = 'none';
+            // Remove required attribute when hidden
+            customAmountInput.required = false;
+            customDaysInput.required = false;
+        }
+    }
+
+    // Initial toggle
+    toggleCustomFields();
+
+    // Toggle on change
+    amountField.addEventListener('change', toggleCustomFields);
+
+    // Auto-calculate days based on amount if needed
+    // You can add this functionality similar to your add_payment form
+});
+</script>
+
+<style>
+#custom-amount-fields {
+    background-color: #f8f9fa;
+    border-color: #dee2e6 !important;
+}
+</style>
 {% endblock %}
-
-
