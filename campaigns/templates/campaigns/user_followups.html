@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-phone"></i>
+                {% if follow_type == 'day1' %}
+                    Day 1 Follow-ups
+                {% elif follow_type == 'day2' %}
+                    Day 2 Follow-ups
+                {% else %}
+                    Follow-up List
+                {% endif %}
+            </h1>
+            <div class="d-flex gap-2">
+                <a href="{% url 'user_dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line"></i> Back to Dashboard
+                </a>
+                <a href="{% url 'user_day1_followup' %}" class="btn btn-outline-info {% if follow_type == 'day1' %}active{% endif %}">
+                    <i class="fas fa-phone"></i> Day 1
+                </a>
+                <a href="{% url 'user_day2_followup' %}" class="btn btn-outline-warning {% if follow_type == 'day2' %}active{% endif %}">
+                    <i class="fas fa-phone-alt"></i> Day 2
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header {% if follow_type == 'day1' %}bg-info{% elif follow_type == 'day2' %}bg-warning{% else %}bg-primary{% endif %} text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell"></i>
+                    {% if follow_type == 'day1' %}
+                        Day 1 Follow-ups (Completed Yesterday)
+                    {% elif follow_type == 'day2' %}
+                        Day 2 Follow-ups (Completed Day Before Yesterday)
+                    {% else %}
+                        All Follow-ups
+                    {% endif %}
+                    ({{ follow_up_ads.count }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if follow_up_ads %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Name</th>
+                                <th>Business Name</th>
+                                <th>Mobile Number</th>
+                                <th>Completed Date</th>
+                                <th>Campaign Duration</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in follow_up_ads %}
+                            <tr>
+                                <td>{{ ad.ad_name }}</td>
+                                <td>{{ ad.business_name }}</td>
+                                <td>{{ ad.mobile_number }}</td>
+                                <td>{{ ad.end_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if ad.start_date and ad.end_date %}
+                                        {{ ad.get_duration_days }} days
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>₹{{ ad.amount|default:"0" }}</td>
+                                <td>
+                                    <a href="{% url 'renew_ad' ad.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-sync"></i> Renew
+                                    </a>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Details Modal -->
+                            <div class="modal fade" id="adDetailsModal{{ ad.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Ad Details: {{ ad.ad_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Basic Information</h6>
+                                                    <p><strong>Ad Name:</strong> {{ ad.ad_name }}</p>
+                                                    <p><strong>Business:</strong> {{ ad.business_name }}</p>
+                                                    <p><strong>Status:</strong> 
+                                                        <span class="badge bg-success">Completed</span>
+                                                    </p>
+                                                    <p><strong>Mobile:</strong> {{ ad.mobile_number }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Campaign Dates</h6>
+                                                    <p><strong>Start Date:</strong> {{ ad.start_date|date:"M d, Y" }}</p>
+                                                    <p><strong>End Date:</strong> {{ ad.end_date|date:"M d, Y" }}</p>
+                                                    <p><strong>Duration:</strong> {{ ad.get_duration_days }} days</p>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-3">
+                                                <div class="col-12">
+                                                    <h6>Payment Information</h6>
+                                                    <p><strong>Amount:</strong> ₹{{ ad.amount|default:"Not set" }}</p>
+                                                    <p><strong>Notes:</strong> {{ ad.notes|default:"No notes" }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <a href="{% url 'renew_ad' ad.id %}" class="btn btn-primary">
+                                                <i class="fas fa-sync"></i> Renew Campaign
+                                            </a>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    {% if follow_type == 'day1' %}
+                        No Day 1 follow-ups needed. No campaigns were completed yesterday.
+                    {% elif follow_type == 'day2' %}
+                        No Day 2 follow-ups needed. No campaigns were completed the day before yesterday.
+                    {% else %}
+                        No follow-ups needed at this time.
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
