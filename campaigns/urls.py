@@ -8,6 +8,8 @@ urlpatterns = [
     path('hold/<int:ad_id>/', views.add_hold, name='add_hold'),
     path('hold/<int:ad_id>/remove/', views.remove_hold, name='remove_hold'),
     path('renew/<int:ad_id>/', views.renew_ad, name='renew_ad'),
+    # Add this to your urlpatterns
+    path('enquiry-history/', views.enquiry_history, name='enquiry_history'),
 
     # Admin URLs
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),

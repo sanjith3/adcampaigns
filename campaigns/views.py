@@ -887,3 +887,31 @@ def admin_set_target(request, user_id):
         'form': form, 
         'target_user': target_user
     })
+
+@login_required
+def enquiry_history(request):
+    """Show all enquiries that are not in today's, day1, or day2 follow-ups"""
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=1)
+    day_before_yesterday = today - timedelta(days=2)
+    
+    # Get enquiries that are NOT in today's, yesterday's, or day-before-yesterday's lists
+    enquiries = AdRecord.objects.filter(
+        user=request.user,
+        status='enquiry'
+    ).exclude(
+        # Exclude today's enquiries
+        entry_date__date=today
+    ).exclude(
+        # Exclude yesterday's enquiries (Day 1 follow-ups)
+        entry_date__date=yesterday
+    ).exclude(
+        # Exclude day-before-yesterday's enquiries (Day 2 follow-ups)
+        entry_date__date=day_before_yesterday
+    ).order_by('-entry_date')
+    
+    context = {
+        'enquiries': enquiries,
+        'title': 'Enquiry History'
+    }
+    return render(request, 'campaigns/enquiry_history.html', context)
