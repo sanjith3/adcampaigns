@@ -16,6 +16,9 @@ migrate:
 su: 
 	$(MANAGE) createsuperuser
 
+shell:
+	$(MANAGE) shell
+
 prod: 
 	uvicorn adsoft.asgi:application --reload
 
@@ -25,3 +28,4 @@ prod-glob:
 clean:
 	pwsh -NoProfile -Command "Get-ChildItem -Path . -Recurse -Directory -Name '__pycache__' | ForEach-Object { Remove-Item -Path $$_.FullName -Recurse -Force -ErrorAction SilentlyContinue }"
 	pwsh -NoProfile -Command "Get-ChildItem -Path . -Recurse -File -Name '*.pyc' | ForEach-Object { Remove-Item -Path $$_.FullName -Force -ErrorAction SilentlyContinue }"
+

@@ -22,7 +22,6 @@ class UserProfile(models.Model):
         verbose_name_plural = "User Profiles"
 
 
-# Your existing AdRecord model remains the same
 class AdRecord(models.Model):
     STATUS_CHOICES = [
         ('enquiry', 'Enquiry'),
@@ -72,6 +71,9 @@ class AdRecord(models.Model):
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enquiry')
     renewed_from = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='renewals')
+    
+    # ADD THE MISSING FIELD HERE ⬇️⬇️⬇️
+    # follow_up_completed = models.BooleanField(default=False, null=True, blank=True)
 
     class Meta:
         ordering = ['-entry_date']
@@ -114,37 +116,37 @@ class AdRecord(models.Model):
         return self.AMOUNT_DAYS_MAPPING.get(self.amount, 0)
 
 
-# Your existing Day1FollowUp and Day2FollowUp models remain the same
 class Day1FollowUp(models.Model):
     """First day follow-up for enquiries"""
     ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day1_followup')
-    follow_up_date = models.DateField(auto_now_add=True)
-    notes = models.TextField(blank=True)
-    contacted = models.BooleanField(default=False)
-    contact_method = models.CharField(max_length=50, blank=True)  # phone, email, whatsapp, etc.
-    response = models.TextField(blank=True)
-    
-    class Meta:
-        ordering = ['-follow_up_date']
-    
-    def __str__(self):
-        return f"Day 1 Follow-up: {self.ad_record.ad_name}"
-
-
-class Day2FollowUp(models.Model):
-    """Second day follow-up for enquiries"""
-    ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day2_followup')
-    follow_up_date = models.DateField(auto_now_add=True)
+    follow_up_date = models.DateField()  # REMOVED auto_now_add=True
     notes = models.TextField(blank=True)
     contacted = models.BooleanField(default=False)
     contact_method = models.CharField(max_length=50, blank=True)
     response = models.TextField(blank=True)
+    # REMOVED created_at field - we don't really need it
     
     class Meta:
-        ordering = ['-follow_up_date']
+        ordering = ['follow_up_date']
     
     def __str__(self):
-        return f"Day 2 Follow-up: {self.ad_record.ad_name}"
+        return f"Day 1 Follow-up: {self.ad_record.ad_name} ({self.follow_up_date})"
+
+class Day2FollowUp(models.Model):
+    """Second day follow-up for enquiries"""
+    ad_record = models.OneToOneField(AdRecord, on_delete=models.CASCADE, related_name='day2_followup')
+    follow_up_date = models.DateField()  # REMOVED auto_now_add=True
+    notes = models.TextField(blank=True)
+    contacted = models.BooleanField(default=False)
+    contact_method = models.CharField(max_length=50, blank=True)
+    response = models.TextField(blank=True)
+    # REMOVED created_at field - we don't really need it
+    
+    class Meta:
+        ordering = ['follow_up_date']
+    
+    def __str__(self):
+        return f"Day 2 Follow-up: {self.ad_record.ad_name} ({self.follow_up_date})"
 
 
 # Add signals to automatically create UserProfile when User is created
@@ -160,3 +162,30 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+
+# NEW: Signal to automatically create follow-ups when AdRecord is created
+@receiver(post_save, sender=AdRecord)
+def create_automatic_followups(sender, instance, created, **kwargs):
+    if created and instance.status == 'enquiry':
+        today = timezone.now().date()
+        
+        # Create Day1 follow-up for tomorrow
+        tomorrow = today + timedelta(days=1)
+        Day1FollowUp.objects.get_or_create(
+            ad_record=instance,
+            defaults={
+                'follow_up_date': tomorrow,
+                'notes': 'Automatic Day 1 follow-up created'
+            }
+        )
+        
+        # Create Day2 follow-up for day after tomorrow
+        day_after_tomorrow = today + timedelta(days=2)
+        Day2FollowUp.objects.get_or_create(
+            ad_record=instance,
+            defaults={
+                'follow_up_date': day_after_tomorrow,
+                'notes': 'Automatic Day 2 follow-up created'
+            }
+        )

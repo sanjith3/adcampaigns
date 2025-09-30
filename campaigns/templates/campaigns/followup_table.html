@@ -39,7 +39,7 @@
                                 <th>Business</th>
                                 <th>Mobile</th>
                                 <th>Employee</th>
-                                <th>Status</th>
+                                <th>Enquiry Date</th>
                                 <th>Follow-up Date</th>
                                 <th>Contacted</th>
                                 <th>Contact Method</th>
@@ -51,7 +51,6 @@
                         </thead>
                         <tbody>
                             {% for followup in followups %}
-                            {% if followup.ad_record.status == 'enquiry' %}
                             <tr>
                                 <td>{{ followup.ad_record.ad_name }}</td>
                                 <td>{{ followup.ad_record.business_name }}</td>
@@ -64,9 +63,16 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-info">{{ followup.ad_record.status|title }}</span>
+                                    <small class="text-muted">
+                                        {{ followup.ad_record.entry_date|date:"M d, Y" }}
+                                    </small>
                                 </td>
-                                <td>{{ followup.follow_up_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {{ followup.follow_up_date|date:"M d, Y" }}
+                                    {% if followup.follow_up_date == today %}
+                                        <span class="badge bg-danger">Today</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if followup.contacted %}
                                         <span class="badge bg-success">Yes</span>
@@ -87,23 +93,22 @@
                                     <div class="btn-group-vertical" role="group">
                                         <!-- Follow-up Update Button -->
                                         <a href="{% url 'update_followup' followup.id followup_type %}" class="btn btn-sm btn-primary mb-1">
-                                            <i class="fas fa-edit"></i> Update Follow-up
+                                            <i class="fas fa-edit"></i> Update
                                         </a>
                                         
                                         <!-- Add to Hold Button -->
                                         <a href="{% url 'add_hold' followup.ad_record.id %}" class="btn btn-sm btn-warning mb-1">
-                                            <i class="fas fa-pause"></i> Add to Hold
+                                            <i class="fas fa-pause"></i> Hold
                                         </a>
                                         
                                         <!-- Add Payment Button -->
                                         <a href="{% url 'add_payment' followup.ad_record.id %}" class="btn btn-sm btn-success">
-                                            <i class="fas fa-credit-card"></i> Add Payment
+                                            <i class="fas fa-credit-card"></i> Payment
                                         </a>
                                     </div>
                                 </td>
                                 {% endif %}
                             </tr>
-                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>

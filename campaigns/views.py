@@ -42,7 +42,11 @@ def dashboard(request):
 
     user_ads = AdRecord.objects.filter(user=request.user)
 
-    enquiries = user_ads.filter(status='enquiry')
+    # Get today's date for filtering
+    today = timezone.now().date()
+    
+    # Today's enquiries only
+    enquiries = user_ads.filter(status='enquiry', entry_date__date=today)
     hold_ads = user_ads.filter(status='hold')
     pending_ads = user_ads.filter(status='pending')
     active_ads = user_ads.filter(status='active')
@@ -142,6 +146,11 @@ def create_ad(request):
             ad = form.save(commit=False)
             ad.user = request.user
             ad.save()
+            
+            # Automatically create Day1 follow-up for tomorrow
+            tomorrow = timezone.now().date() + timedelta(days=1)
+            Day1FollowUp.objects.create(ad_record=ad, follow_up_date=tomorrow)
+            
             messages.success(request, 'Ad enquiry created successfully!')
             return redirect('dashboard')
         else:
@@ -707,21 +716,39 @@ def lookup_by_mobile(request):
 
 @login_required
 def user_day1_followup(request):
-    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=1)
+    
+    # Get followups for yesterday's enquiries
+    followups = Day1FollowUp.objects.filter(
+        ad_record__user=request.user,
+        ad_record__status='enquiry',
+        ad_record__entry_date__date=yesterday  # Enquiries created yesterday
+    ).order_by('follow_up_date')
+    
     return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Your Day 1 Follow-ups',
+        'title': 'Day 1 Follow-ups (Yesterday\'s Enquiries)',
         'followup_type': 'day1'
     })
 
 
 @login_required
 def user_day2_followup(request):
-    followups = Day1FollowUp.objects.filter(ad_record__user=request.user)  # example filter
+    today = timezone.now().date()
+    day_before_yesterday = today - timedelta(days=2)
+    
+    # Get followups for day before yesterday's enquiries
+    followups = Day2FollowUp.objects.filter(
+        ad_record__user=request.user,
+        ad_record__status='enquiry',
+        ad_record__entry_date__date=day_before_yesterday  # Enquiries created day before yesterday
+    ).order_by('follow_up_date')
+    
     return render(request, 'campaigns/followup_table.html', {
         'followups': followups,
-        'title': 'Your Day 2 Follow-ups',
-        'followup_type': 'day1'
+        'title': 'Day 2 Follow-ups (Day Before Yesterday\'s Enquiries)',
+        'followup_type': 'day2'
     })
 
 @login_required
