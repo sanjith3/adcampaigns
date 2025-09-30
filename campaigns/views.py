@@ -17,6 +17,7 @@ from django.views.decorators.http import require_GET #type: ignore
 from django.core.mail import send_mail, EmailMessage #type: ignore
 from django.views.decorators.cache import never_cache #type: ignore
 import os
+from datetime import date,datetime #type:ignore
 
 def is_admin(user):
     return user.is_superuser
@@ -48,7 +49,32 @@ def dashboard(request):
     completed_ads = user_ads.filter(status='completed')
     follow_up_ads = completed_ads.filter(renewals__isnull=True)
 
-    # ✅ Monthly Stats
+    stats_range_start = request.GET.get('start')
+    stats_range_end = request.GET.get('end')
+    
+    stats_range_count = None
+    stats_range_amount = 0
+    range_ads = user_ads
+
+    if stats_range_start and stats_range_end:
+        try:
+            start_date = datetime.strptime(stats_range_start, '%Y-%m-%d').date()
+            end_date = datetime.strptime(stats_range_end, '%Y-%m-%d').date()
+            range_ads = user_ads.filter(
+                start_date__gte=start_date,
+                start_date__lte=end_date
+            )
+            
+            range_stats = range_ads.aggregate(
+                count=Count('id'),
+                total_amount=Coalesce(Sum('amount'), 0)
+            )
+            stats_range_count = range_stats['count']
+            stats_range_amount = range_stats['total_amount']
+            
+        except ValueError:
+            pass
+
     now = timezone.now()
     month_start = date(now.year, now.month, 1)
     monthly_stats = user_ads.filter(
@@ -59,7 +85,6 @@ def dashboard(request):
         total_amount=Coalesce(Sum('amount'), 0)
     )
 
-    # ✅ Target Progress Calculation
     try:
         user_profile = UserProfile.objects.get(user=request.user)
         target_amount = user_profile.target_amount
@@ -92,14 +117,17 @@ def dashboard(request):
         'show_follow': show_follow,
         'stats_active_today_count': monthly_stats['count'],
         'stats_active_today_amount': monthly_stats['total_amount'],
-        'target_progress': target_progress,  # Add this to context
+        'target_progress': target_progress,
+        'stats_range_start': stats_range_start,
+        'stats_range_end': stats_range_end,
+        'stats_range_count': stats_range_count,
+        'stats_range_amount': stats_range_amount,
     }
     return render(request, 'campaigns/dashboard.html', context)
 
 
 @login_required
 def create_ad(request):
-    # Debug: Check if user is authenticated
     if not request.user.is_authenticated:
         messages.error(request, 'You must be logged in to create an enquiry.')
         return redirect('login')
@@ -117,7 +145,6 @@ def create_ad(request):
             messages.success(request, 'Ad enquiry created successfully!')
             return redirect('dashboard')
         else:
-            # Debug: Show form errors
             messages.error(request, f'Form validation failed: {form.errors}')
     else:
         form = AdRecordForm()
@@ -139,7 +166,6 @@ def add_payment_details(request, ad_id):
         form = PaymentDetailsForm(request.POST, instance=ad)
         if form.is_valid():
             ad = form.save(commit=False)
-            # Map custom fields when not using predefined amount
             predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
             if ad.amount == 0 or ad.amount not in predefined_mapping_amounts:
                 ad.custom_amount = form.cleaned_data.get('custom_amount')
@@ -257,7 +283,6 @@ def admin_dashboard(request):
             start_date__gte=range_start,
             end_date__lte=range_end
         )
-        # Respect selected user for range stats when provided
         if selected_user:
             range_qs = range_qs.filter(user=selected_user)
         range_stats = range_qs.aggregate(
@@ -267,13 +292,11 @@ def admin_dashboard(request):
         range_count = range_stats['count']
         range_amount = range_stats['total_amount']
 
-        # If viewing Active status, also constrain displayed table by range
         if status_filter == 'active':
             all_ads = all_ads.filter(
                 start_date__gte=range_start,
                 end_date__lte=range_end
             )
-            # Recompute totals for the filtered set
             filtered_total_amount = all_ads.aggregate(
                 total_amount=Coalesce(Sum('amount'), 0)
             )['total_amount']
@@ -340,7 +363,7 @@ def admin_dashboard(request):
         'selected_user': selected_user,
         'users_for_filter': users_for_filter,
         'status_counts': status_counts,
-        'pending_ads': AdRecord.objects.filter(status='pending'),  # Keep for backward compatibility
+        'pending_ads': AdRecord.objects.filter(status='pending'), 
         'show_follow': show_follow,
         'follow_up_ads': follow_up_ads,
         'stats_active_today_count': daily_stats['count'],
@@ -390,10 +413,7 @@ def get_counts_and_signature(queryset):
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def poll_admin_status(request):
-    """
-    Long-poll endpoint for admin dashboard.
-    Checks for changes in AdRecord counts and returns new data if changed.
-    """
+    
     timeout_seconds = 15 
     client_token = request.GET.get('token', '')
     start_time = time.time()
@@ -415,10 +435,6 @@ def poll_admin_status(request):
 @never_cache
 @login_required
 def poll_user_status(request):
-    """
-    Long-poll endpoint for a user's dashboard.
-    Returns updated ad counts if anything changes.
-    """
     timeout_seconds = 15 
     client_token = request.GET.get('token', '')
     start_time = time.time()
@@ -491,7 +507,6 @@ def activate_ad(request, ad_id):
 
 @login_required
 def renew_ad(request, ad_id):
-    # Prevent admins from renewing enquiries
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot renew enquiries.')
         return redirect('admin_dashboard')
@@ -501,7 +516,6 @@ def renew_ad(request, ad_id):
     if request.method == 'POST':
         form = PaymentDetailsForm(request.POST)
         if form.is_valid():
-            # Create a new pending ad based on the completed ad with provided payment details
             new_ad = AdRecord(
                 user=request.user,
                 ad_name=original_ad.ad_name,
@@ -514,12 +528,10 @@ def renew_ad(request, ad_id):
                 upi_last_four=form.cleaned_data['upi_last_four']
             )
             
-            # Handle custom amount and days like in add_payment_details
             predefined_mapping_amounts = set(AdRecord.AMOUNT_DAYS_MAPPING.keys())
             if new_ad.amount == 0 or new_ad.amount not in predefined_mapping_amounts:
                 new_ad.custom_amount = form.cleaned_data.get('custom_amount')
                 new_ad.custom_days = form.cleaned_data.get('custom_days')
-                # Store amount field as entered custom amount for visibility
                 new_ad.amount = new_ad.custom_amount
             else:
                 new_ad.custom_amount = None
@@ -542,7 +554,6 @@ def renew_ad(request, ad_id):
 @login_required
 @user_passes_test(is_admin)
 def admin_users(request):
-    # List users and handle creation
     users = User.objects.order_by('username')
 
     if request.method == 'POST':
@@ -604,11 +615,7 @@ def admin_set_password(request, user_id):
 @login_required
 @require_GET
 def notifications(request):
-    """Return lightweight counts for follow-up badges.
-
-    - For admins: number of completed ads without renewals (global)
-    - For users: number of their own completed ads without renewals
-    """
+    
     if request.user.is_superuser:
         follow_count = AdRecord.objects.filter(status='completed', renewals__isnull=True).count()
     else:
@@ -624,12 +631,7 @@ def notifications(request):
 @user_passes_test(is_admin)
 @require_GET
 def admin_generate_report(request):
-    """Admin-only: email today's per-user enquiry and active counts, plus totals.
-
-    - Recipient: fixed admin email
-    - Content: For each non-admin user: enquiries created today, active today
-      Then overall totals across all users
-    """
+    
     today = timezone.now().date()
 
     users = User.objects.filter(is_superuser=False).order_by('username')
@@ -675,7 +677,6 @@ def admin_generate_report(request):
 @user_passes_test(is_admin)
 @require_GET
 def admin_ad_history(request, ad_id):
-    """Return the client/ad history HTML snippet for display in modal."""
     ad = get_object_or_404(AdRecord, id=ad_id)
 
     history_qs = AdRecord.objects.filter(business_name=ad.business_name).order_by('-entry_date')
@@ -689,12 +690,9 @@ def admin_ad_history(request, ad_id):
 @require_GET
 def lookup_by_mobile(request):
     mobile = request.GET.get('mobile', '').strip()
-    # Basic validation: 10 digits
     if not (mobile.isdigit() and len(mobile) == 10):
         return JsonResponse({'ok': False, 'results': [], 'error': 'Invalid mobile'}, status=400)
-    # Limit to current user's records for privacy
     qs = AdRecord.objects.filter(user=request.user, mobile_number=mobile).order_by('-entry_date')
-    print(qs)
     results = [
         {
             'id': ad.id,
@@ -734,9 +732,6 @@ def user_dashboard(request):
 
 @login_required
 def update_followup(request, followup_id, followup_type):
-    """Update follow-up details"""
-    
-    # Get the correct follow-up object
     if followup_type == 'day1':
         followup = get_object_or_404(Day1FollowUp, id=followup_id)
     elif followup_type == 'day2':
@@ -745,7 +740,6 @@ def update_followup(request, followup_id, followup_type):
         messages.error(request, 'Invalid follow-up type')
         return redirect('user_dashboard')  # fallback to user dashboard
     
-    # Handle POST request to update follow-up
     if request.method == 'POST':
         followup.contacted = request.POST.get('contacted') == 'on'
         followup.contact_method = request.POST.get('contact_method', '')
@@ -755,7 +749,6 @@ def update_followup(request, followup_id, followup_type):
         
         messages.success(request, 'Follow-up updated successfully!')
         
-        # Redirect to the correct follow-up list page
         if followup_type == 'day1':
             return redirect('user_day1_followup')
         elif followup_type == 'day2':
@@ -764,7 +757,6 @@ def update_followup(request, followup_id, followup_type):
             return redirect('user_dashboard')
 
     
-    # Render the template with context
     context = {
         'followup': followup,
         'followup_type': followup_type
@@ -850,7 +842,6 @@ def admin_edit_hold(request, ad_id):
 def admin_set_target(request, user_id):
     target_user = get_object_or_404(User, id=user_id)
     
-    # Get or create user profile
     user_profile, created = UserProfile.objects.get_or_create(user=target_user)
     
     if request.method == 'POST':
@@ -863,7 +854,6 @@ def admin_set_target(request, user_id):
             messages.success(request, f'Target of ₹{target_amount} set successfully for {target_user.username}.')
             return redirect('admin_users')
     else:
-        # Pre-populate with current target if exists
         form = SetTargetForm(initial={'target_amount': user_profile.target_amount})
     
     return render(request, 'campaigns/admin_set_target.html', {

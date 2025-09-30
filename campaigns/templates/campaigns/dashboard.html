@@ -33,8 +33,6 @@
                 <a href="{% url 'user_day2_followup' %}" class="btn btn-outline-warning">
                     <i class="fas fa-phone-alt"></i> Day 2 Follow-ups
                 </a>
-                
-                
             </div>
         </div>
 
@@ -55,23 +53,28 @@
 
         <!-- Stats Row -->
         <div class="row mb-4">
-            <div class="col-md-4">
+            <!-- Monthly Stats Card -->
+            <div class="col-md-3">
                 <div class="card text-white bg-success">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{ stats_active_today_count }}</h5>
-                        <p class="card-text mb-0">Total Ad</p>
+                        <p class="card-text mb-0">Total Ads (This Month)</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            
+            <!-- Monthly Amount Card -->
+            <div class="col-md-3">
                 <div class="card text-white bg-primary">
                     <div class="card-body text-center">
                         <h5 class="card-title">₹{{ stats_active_today_amount }}</h5>
-                        <p class="card-text mb-0">Amount Total (This Month)</p>
+                        <p class="card-text mb-0">Amount (This Month)</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            
+            <!-- Target Progress Card -->
+            <div class="col-md-3">
                 <div class="card text-white {% if target_progress.remaining <= 0 %}bg-success{% elif target_progress.progress_percentage >= 75 %}bg-warning{% else %}bg-info{% endif %}">
                     <div class="card-body text-center">
                         <h5 class="card-title">₹{{ target_progress.achieved }} / ₹{{ target_progress.target }}</h5>
@@ -84,7 +87,7 @@
                         </p>
                         {% if target_progress.target > 0 %}
                         <div class="progress mt-2" style="height: 8px;">
-                            <div class="progress-bar bg-light" 
+                            <div class="progress-bar bg-dark" 
                                  role="progressbar" 
                                  style="width: {{ target_progress.progress_percentage }}%;"
                                  aria-valuenow="{{ target_progress.progress_percentage }}" 
@@ -97,27 +100,29 @@
                     </div>
                 </div>
             </div>
-        </div>
-            <div class="col-md-4">
+            
+            <!-- Date Range Filter Card -->
+            <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <form method="get" class="row g-2 align-items-end">
                             <input type="hidden" name="status" value="{{ status_filter }}" />
-                            <div class="col-5">
+                            <div class="col-12">
                                 <label class="form-label">Start date</label>
                                 <input type="date" name="start" value="{{ stats_range_start }}" class="form-control" />
                             </div>
-                            <div class="col-5">
+                            <div class="col-12">
                                 <label class="form-label">End date</label>
                                 <input type="date" name="end" value="{{ stats_range_end }}" class="form-control" />
                             </div>
-                            <div class="col-2 d-grid">
-                                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                            <div class="col-12 d-grid">
+                                <button type="submit" class="btn btn-outline-primary">Filter Range</button>
                             </div>
                             {% if stats_range_count != None %}
                             <div class="col-12 mt-2">
-                                <div class="alert alert-info py-2 mb-0">
-                                    <strong>{{ stats_range_count }}</strong> active in range, total <strong>₹{{ stats_range_amount }}</strong>
+                                <div class="alert alert-info py-2 mb-0 text-center">
+                                    <strong>{{ stats_range_count }}</strong> ads in range<br>
+                                    <strong>₹{{ stats_range_amount }}</strong> total
                                 </div>
                             </div>
                             {% endif %}
@@ -177,7 +182,7 @@
         {% if active_ads and status_filter == 'all' or active_ads and status_filter == 'active' %}
         <div class="card mb-4 border-success">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-play-circle"></i> Active Campaigns</h5>
+                <h5 class="mb-0"><i class="fas fa-play-circle"></i> Active Campaigns ({{ active_ads.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -214,7 +219,7 @@
         {% if pending_ads and status_filter == 'all' or pending_ads and status_filter == 'pending' %}
         <div class="card mb-4 border-warning">
             <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Verification</h5>
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Verification ({{ pending_ads.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -251,7 +256,7 @@
         {% if enquiries and status_filter == 'all' or enquiries and status_filter == 'enquiry' %}
         <div class="card mb-4 border-secondary">
             <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Enquiries</h5>
+                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Enquiries ({{ enquiries.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -329,7 +334,7 @@
         {% if hold_ads and status_filter == 'all' or hold_ads and status_filter == 'hold' %}
         <div class="card mb-4 border-dark">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="fas fa-pause"></i> On Hold</h5>
+                <h5 class="mb-0"><i class="fas fa-pause"></i> On Hold ({{ hold_ads.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -379,7 +384,7 @@
         {% if completed_ads and status_filter == 'all' or completed_ads and status_filter == 'completed' %}
         <div class="card mb-4 border-info">
             <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-check-circle"></i> Completed Campaigns</h5>
+                <h5 class="mb-0"><i class="fas fa-check-circle"></i> Completed Campaigns ({{ completed_ads.count }})</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -415,6 +420,7 @@
     </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 {{ block.super }}
 <script>
