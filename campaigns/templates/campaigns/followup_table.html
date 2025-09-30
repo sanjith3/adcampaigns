@@ -44,7 +44,9 @@
                                 <th>Contacted</th>
                                 <th>Contact Method</th>
                                 <th>Response</th>
+                                {% if not user.is_superuser %}
                                 <th>Actions</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -73,14 +75,17 @@
                                     {% if followup.response %}
                                         <span class="text-success">{{ followup.response|truncatechars:30 }}</span>
                                     {% else %}
-                                        <span class="text-muted">No response</span>
+                                        <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
+                                {% if not user.is_superuser %}
                                 <td>
+                                    <!-- Follow-up Update Button -->
                                     <a href="{% url 'update_followup' followup.id followup_type %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i> Update
+                                        <i class="fas fa-edit"></i> Update Follow-up
                                     </a>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
