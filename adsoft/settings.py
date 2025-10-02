@@ -16,6 +16,9 @@ DEBUG = True
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
+SESSION_SAVE_EVERY_REQUEST = False  # Reduce frequent saves
+SESSION_COOKIE_AGE = 1209600  # 2 weeks, adjust as needed
+
 ALLOWED_HOSTS = ["*", "localhost"]
 
 # Application definition
@@ -37,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'adsoft.middleware.SessionErrorMiddleware',
 ]
 
 ROOT_URLCONF = 'adsoft.urls'
@@ -103,14 +107,6 @@ LOGIN_URL = '/login/'
 
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # default
-SESSION_COOKIE_AGE = 1209600  # seconds (2 weeks default)
-SESSION_SAVE_EVERY_REQUEST = False
-
-
-# Session configuration to prevent timeout issues
-SESSION_COOKIE_AGE = 3600 * 24  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
