@@ -170,22 +170,38 @@ def create_automatic_followups(sender, instance, created, **kwargs):
     if created and instance.status == 'enquiry':
         today = timezone.now().date()
         
-        # Create Day1 follow-up for tomorrow
-        tomorrow = today + timedelta(days=1)
-        Day1FollowUp.objects.get_or_create(
-            ad_record=instance,
-            defaults={
-                'follow_up_date': tomorrow,
-                'notes': 'Automatic Day 1 follow-up created'
-            }
-        )
+        try:
+            # Create Day1 follow-up for tomorrow
+            tomorrow = today + timedelta(days=1)
+            day1_followup, day1_created = Day1FollowUp.objects.get_or_create(
+                ad_record=instance,
+                defaults={
+                    'follow_up_date': tomorrow,
+                    'notes': 'Automatic Day 1 follow-up created'
+                }
+            )
+            if day1_created:
+                print(f"Created Day1 follow-up for ad_record {instance.id}")
+            else:
+                print(f"Day1 follow-up already exists for ad_record {instance.id}")
+                
+        except Exception as e:
+            print(f"Error creating Day1 follow-up for ad_record {instance.id}: {e}")
         
-        # Create Day2 follow-up for day after tomorrow
-        day_after_tomorrow = today + timedelta(days=2)
-        Day2FollowUp.objects.get_or_create(
-            ad_record=instance,
-            defaults={
-                'follow_up_date': day_after_tomorrow,
-                'notes': 'Automatic Day 2 follow-up created'
-            }
-        )
+        try:
+            # Create Day2 follow-up for day after tomorrow
+            day_after_tomorrow = today + timedelta(days=2)
+            day2_followup, day2_created = Day2FollowUp.objects.get_or_create(
+                ad_record=instance,
+                defaults={
+                    'follow_up_date': day_after_tomorrow,
+                    'notes': 'Automatic Day 2 follow-up created'
+                }
+            )
+            if day2_created:
+                print(f"Created Day2 follow-up for ad_record {instance.id}")
+            else:
+                print(f"Day2 follow-up already exists for ad_record {instance.id}")
+                
+        except Exception as e:
+            print(f"Error creating Day2 follow-up for ad_record {instance.id}: {e}")
