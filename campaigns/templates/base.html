@@ -22,6 +22,8 @@
     <!-- Theme CSS -->
     <link href="{% static 'css/dark-theme.css' %}?v=20251003" rel="stylesheet">
 
+    {% block extra_css %}{% endblock %}
+
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -128,6 +130,25 @@
         } else {
             fetchCounts();
         }
+
+        // Remove stray Bootstrap backdrops if no modal is open (prevents stuck dim screen)
+        function cleanupModalArtifacts() {
+            const anyModalVisible = document.querySelector('.modal.show, .modal-overlay.active');
+            if (!anyModalVisible) {
+                document.body.classList.remove('modal-open');
+                document.querySelectorAll('.modal-backdrop').forEach(function(el){ el.parentNode && el.parentNode.removeChild(el); });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', cleanupModalArtifacts);
+        } else {
+            cleanupModalArtifacts();
+        }
+
+        // Also run on history navigation and visibility changes
+        window.addEventListener('pageshow', cleanupModalArtifacts);
+        document.addEventListener('visibilitychange', function(){ if (!document.hidden) cleanupModalArtifacts(); });
     })();
     </script>
     {% endblock %}

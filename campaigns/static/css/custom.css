@@ -319,3 +319,51 @@ body.hologram-theme .theme-options {
 body.hologram-theme .theme-option:hover {
     background: rgba(0, 243, 255, 0.1);
 }
+
+/* =====================
+   Modal / Overlay Fixes
+   ===================== */
+/* Custom modal overlay (if used in templates) */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000; /* above rest of UI */
+    display: none; /* default hidden */
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal-content {
+    background: white;
+    color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10001;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Prevent background scroll when modal is open */
+body.modal-open { overflow: hidden; }
+
+/* Bootstrap modal stacking safety (if Bootstrap modals are used) */
+.modal { z-index: 1055; }
+.modal-backdrop { z-index: 1050; }
+.modal .modal-content { position: relative; z-index: 1056; }

@@ -1,41 +1,102 @@
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<style>
+/* Only remove stuck overlays, not all modal functionality */
+body.modal-open { 
+    overflow: auto !important; 
+    padding-right: 0 !important; /* Remove Bootstrap's scrollbar compensation */
+}
+
+/* Only remove backdrop if it's stuck/visible when it shouldn't be */
+.modal-backdrop.show:not(.d-none) { 
+    display: none !important; 
+}
+
+/* Ensure our content is always visible and properly positioned */
+.card {
+    position: relative;
+    z-index: 1;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-pause"></i> Place Enquiry on Hold</h3>
+    <div class="card shadow-sm">
+      <div class="card-header bg-warning text-dark">
+        <h3 class="card-title mb-0"><i class="fas fa-pause-circle me-2"></i> Place Enquiry on Hold</h3>
       </div>
-      <div class="card-body">
-        <form method="post" novalidate>
+      <div class="card-body p-4">
+        <div class="alert alert-info mb-4">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Ad Being Placed on Hold:</strong> {{ ad.ad_name }} - {{ ad.business_name }}
+        </div>
+        
+        <form method="post" novalidate id="holdForm">
           {% csrf_token %}
+          
           {% if form.non_field_errors %}
           <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
             {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
           </div>
           {% endif %}
-          <div class="mb-3">
-            <label for="{{ form.hold_reason.id_for_label }}" class="form-label">Reason</label>
+          
+          <div class="mb-4">
+            <label for="{{ form.hold_reason.id_for_label }}" class="form-label fw-semibold">
+              <i class="fas fa-comment-dots me-2"></i>Reason for Hold
+            </label>
             {{ form.hold_reason }}
             {% if form.hold_reason.errors %}
-            <div class="text-danger small mt-1">
+            <div class="text-danger small mt-2">
+              <i class="fas fa-exclamation-circle me-1"></i>
               {% for err in form.hold_reason.errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
             </div>
             {% endif %}
+            <div class="form-text">Please provide a clear reason for placing this enquiry on hold.</div>
           </div>
-          <div class="mb-3">
-            <label for="{{ form.hold_until.id_for_label }}" class="form-label">Hold Until (optional)</label>
+          
+          <div class="mb-4">
+            <label for="{{ form.hold_until.id_for_label }}" class="form-label fw-semibold">
+              <i class="fas fa-calendar-alt me-2"></i>Hold Until (optional)
+            </label>
             {{ form.hold_until }}
             {% if form.hold_until.errors %}
-            <div class="text-danger small mt-1">
+            <div class="text-danger small mt-2">
+              <i class="fas fa-exclamation-circle me-1"></i>
               {% for err in form.hold_until.errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
             </div>
             {% endif %}
+            <div class="form-text">Leave empty if the hold duration is indefinite.</div>
           </div>
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">Cancel</a>
-            <button type="submit" class="btn btn-primary">Confirm Hold</button>
+          
+          <!-- Ad Summary -->
+          <div class="card bg-light mb-4">
+            <div class="card-body">
+              <h6 class="card-title mb-3"><i class="fas fa-file-alt me-2"></i>Ad Summary</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <strong>Ad Name:</strong> {{ ad.ad_name }}<br>
+                  <strong>Business:</strong> {{ ad.business_name }}<br>
+                  <strong>Mobile:</strong> {{ ad.mobile_number }}
+                </div>
+                <div class="col-md-6">
+                  <strong>Amount:</strong> ${{ ad.amount }}<br>
+                  <strong>Status:</strong> <span class="badge bg-warning text-dark">Pending Hold</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary me-md-2">
+              <i class="fas fa-times me-2"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-warning text-dark">
+              <i class="fas fa-pause-circle me-2"></i>Confirm Hold
+            </button>
           </div>
         </form>
       </div>
@@ -43,3 +104,51 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // More targeted approach to fix overlay issues
+    const body = document.body;
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Only remove modal classes if we're not in an actual modal context
+    if (!urlParams.has('modal') && !window.location.hash.includes('modal')) {
+        body.classList.remove('modal-open');
+        
+        // Only remove backdrops that are actually visible and stuck
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => {
+            if (backdrop.classList.contains('show') && getComputedStyle(backdrop).display !== 'none') {
+                backdrop.remove();
+            }
+        });
+    }
+    
+    // Add form submission handler
+    const form = document.getElementById('holdForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Placing on Hold...';
+            }
+        });
+    }
+    
+    // Enhance date input if needed
+    const holdUntilInput = document.getElementById('{{ form.hold_until.id_for_label }}');
+    if (holdUntilInput) {
+        // Add date picker attributes if not already present
+        if (!holdUntilInput.hasAttribute('type')) {
+            holdUntilInput.setAttribute('type', 'date');
+        }
+        if (!holdUntilInput.hasAttribute('min')) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            holdUntilInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
+        }
+    }
+});
+</script>
