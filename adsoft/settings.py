@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'campaigns',
-    # "tailwind",
+    "tailwind",
     # "theme", 
     # "django_browser_reload",
 ]
@@ -43,10 +43,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # "django_browser_reload.middleware.BrowserReloadMiddleware",
     'adsoft.middleware.SessionErrorMiddleware',
 ]
 
+TAILWIND_APP_NAME = "theme"
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
 
 ROOT_URLCONF = 'adsoft.urls'
 

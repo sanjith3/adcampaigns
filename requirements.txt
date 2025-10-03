@@ -3,4 +3,3 @@ djangorestframework
 uvicorn
 mysqlclient 
 python-dotenv
-django-tailwind
