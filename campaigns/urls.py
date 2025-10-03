@@ -22,7 +22,6 @@ urlpatterns = [
     path('admin-users/<int:user_id>/set-target/', views.admin_set_target, name='admin_set_target'),
 
     #Long-Polling
-
     path('admin-dashboard/poll/', views.poll_admin_status, name='poll_admin_status'),
     path('poll/', views.poll_user_status, name='poll_user_status'),
 

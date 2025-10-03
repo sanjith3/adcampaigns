@@ -149,7 +149,7 @@ def create_ad(request):
             
             # Automatically create Day1 follow-up for tomorrow
             tomorrow = timezone.now().date() + timedelta(days=1)
-            Day1FollowUp.objects.create(ad_record=ad, follow_up_date=tomorrow)
+            # Day1FollowUp.objects.create(ad_record=ad, follow_up_date=tomorrow)
             
             messages.success(request, 'Ad enquiry created successfully!')
             return redirect('dashboard')
