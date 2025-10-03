@@ -131,24 +131,54 @@
             fetchCounts();
         }
 
-        // Remove stray Bootstrap backdrops if no modal is open (prevents stuck dim screen)
+        // FIXED: Better modal cleanup that only removes stuck overlays
         function cleanupModalArtifacts() {
-            const anyModalVisible = document.querySelector('.modal.show, .modal-overlay.active');
-            if (!anyModalVisible) {
+            const anyModalVisible = document.querySelector('.modal.show');
+            
+            // If no modal is actually visible but body has modal-open class
+            if (!anyModalVisible && document.body.classList.contains('modal-open')) {
+                console.log('Cleaning up stuck modal state');
                 document.body.classList.remove('modal-open');
-                document.querySelectorAll('.modal-backdrop').forEach(function(el){ el.parentNode && el.parentNode.removeChild(el); });
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                
+                // Only remove backdrops that are actually stuck (no parent modal)
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => {
+                    const hasParentModal = backdrop.closest('.modal');
+                    if (!hasParentModal && backdrop.parentNode) {
+                        backdrop.parentNode.removeChild(backdrop);
+                    }
+                });
             }
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', cleanupModalArtifacts);
-        } else {
-            cleanupModalArtifacts();
-        }
+        // Run cleanup on various events
+        const cleanupEvents = ['DOMContentLoaded', 'pageshow', 'load'];
+        cleanupEvents.forEach(event => {
+            window.addEventListener(event, function() {
+                // Small delay to ensure page is fully loaded
+                setTimeout(cleanupModalArtifacts, 100);
+            });
+        });
 
-        // Also run on history navigation and visibility changes
-        window.addEventListener('pageshow', cleanupModalArtifacts);
-        document.addEventListener('visibilitychange', function(){ if (!document.hidden) cleanupModalArtifacts(); });
+        // Also cleanup when coming back to the page
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                setTimeout(cleanupModalArtifacts, 50);
+            }
+        });
+
+        // Emergency cleanup - if user clicks anywhere and overlay is stuck
+        document.addEventListener('click', function(e) {
+            // If clicking on body and modal-open class is present but no visible modals
+            if (e.target === document.body && 
+                document.body.classList.contains('modal-open') && 
+                !document.querySelector('.modal.show')) {
+                cleanupModalArtifacts();
+            }
+        });
+
     })();
     </script>
     {% endblock %}

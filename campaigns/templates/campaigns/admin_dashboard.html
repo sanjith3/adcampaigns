@@ -52,9 +52,6 @@
             {% endif %}
         </div>
 
-        <!-- Completed Campaigns History Section - Always Visible -->
-
-
         {% if not show_follow %}
         <!-- Stats Row -->
         <div class="row mb-4">
@@ -100,7 +97,6 @@
                             </div>
                             {% endif %}
                         </form>
-                 
                     </div>
                 </div>
             </div>
@@ -141,7 +137,6 @@
                     </div>
                 </div>
             </div>
-            
         </div>
         {% endif %}
 
@@ -455,115 +450,31 @@
                                             </a>
                                         {% endif %}
 
-                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
+                                        <!-- FIXED: Single modal approach -->
+                                        <button class="btn btn-sm btn-info view-ad-details" 
+                                                data-ad-id="{{ ad.id }}"
+                                                data-ad-name="{{ ad.ad_name }}"
+                                                data-business="{{ ad.business_name }}"
+                                                data-status="{{ ad.status }}"
+                                                data-status-class="{{ ad.get_status_display_class }}"
+                                                data-employee="{% if ad.user %}{{ ad.user.get_full_name|default:ad.user.username }}{% else %}(deleted user){% endif %}"
+                                                data-entry-date="{{ ad.entry_date|date:'M d, Y H:i' }}"
+                                                data-start-date="{% if ad.start_date %}{{ ad.start_date|date:'M d, Y' }}{% else %}Not started{% endif %}"
+                                                data-end-date="{% if ad.end_date %}{{ ad.end_date|date:'M d, Y' }}{% else %}Not set{% endif %}"
+                                                data-amount="{% if ad.amount %}₹{{ ad.amount }}{% else %}Not set{% endif %}"
+                                                data-upi-last-four="{{ ad.upi_last_four|default:'Not provided' }}"
+                                                data-admin-upi="{{ ad.admin_upi_id|default:'Not verified' }}"
+                                                data-notes="{{ ad.notes|default:'No notes provided' }}"
+                                                data-renewed-from="{% if ad.renewed_from %}{{ ad.renewed_from.ad_name }} (Completed on {{ ad.renewed_from.end_date|date:'M d, Y' }}){% endif %}">
                                             <i class="fas fa-eye"></i> View
                                         </button>
+                                        
                                         <button class="btn btn-sm btn-outline-secondary" data-action="history" data-ad-id="{{ ad.id }}" data-bs-toggle="modal" data-bs-target="#adHistoryModal">
                                             <i class="fas fa-clock-rotate-left"></i> History
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-
-                            <!-- Details Modal -->
-                            <div class="modal fade" id="adDetailsModal{{ ad.id }}" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Ad Details: {{ ad.ad_name }}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <h6>Basic Information</h6>
-                                                    <p><strong>Ad Name:</strong> {{ ad.ad_name }}</p>
-                                                    <p><strong>Business:</strong> {{ ad.business_name }}</p>
-                                                    <p><strong>Status:</strong>
-                                                        <span class="badge bg-{{ ad.get_status_display_class }}">
-                                                            {{ ad.get_status_display }}
-                                                        </span>
-                                                    </p>
-                                                    <p><strong>Employee:</strong>
-                                                        {% if ad.user %}
-                                                            {{ ad.user.get_full_name|default:ad.user.username }}
-                                                        {% else %}
-                                                            <span class="text-muted">(deleted user)</span>
-                                                        {% endif %}
-                                                    </p>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h6>Dates</h6>
-                                                    <p><strong>Entry Date:</strong> {{ ad.entry_date|date:"M d, Y H:i" }}</p>
-                                                    <p><strong>Start Date:</strong>
-                                                        {% if ad.start_date %}
-                                                            {{ ad.start_date|date:"M d, Y" }}
-                                                        {% else %}
-                                                            Not started
-                                                        {% endif %}
-                                                    </p>
-                                                    <p><strong>End Date:</strong>
-                                                        {% if ad.end_date %}
-                                                            {{ ad.end_date|date:"M d, Y" }}
-                                                        {% else %}
-                                                            Not set
-                                                        {% endif %}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <hr>
-
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <h6>Payment Information</h6>
-                                                    <p><strong>Amount:</strong>
-                                                        {% if ad.amount %}
-                                                            ₹{{ ad.amount }}
-                                                        {% else %}
-                                                            Not set
-                                                        {% endif %}
-                                                    </p>
-                                                    <p><strong>Last 4 UPI Digits:</strong>
-                                                        {% if ad.upi_last_four %}
-                                                            {{ ad.upi_last_four }}
-                                                        {% else %}
-                                                            Not provided
-                                                        {% endif %}
-                                                    </p>
-                                                    <p><strong>Admin UPI ID:</strong>
-                                                        {% if ad.admin_upi_id %}
-                                                            {{ ad.admin_upi_id }}
-                                                        {% else %}
-                                                            Not verified
-                                                        {% endif %}
-                                                    </p>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h6>Notes</h6>
-                                                    <p>{{ ad.notes|default:"No notes provided" }}</p>
-                                                </div>
-                                            </div>
-
-                                            {% if ad.renewed_from %}
-                                            <hr>
-                                            <div class="row">
-                                                <div class="col-12">
-                                                    <h6>Renewal History</h6>
-                                                    <p class="text-muted">
-                                                        Renewed from: {{ ad.renewed_from.ad_name }}
-                                                        (Completed on {{ ad.renewed_from.end_date|date:"M d, Y" }})
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -617,36 +528,41 @@
             </div>
         </div>
 
-        <!-- History Modal -->
-        <div class="modal fade" id="adHistoryModal" tabindex="-1">
-            <div class="modal-dialog modal-xl">
+        <!-- FIXED: Single Dynamic Details Modal -->
+        <div class="modal fade" id="adDetailsModal" tabindex="-1" aria-labelledby="adDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Client History</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title" id="adDetailsModalLabel">Ad Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body" id="ad-history-body">
-                        <div class="text-center text-muted py-4">Loading...</div>
+                    <div class="modal-body" id="adDetailsModalBody">
+                        <div class="text-center text-muted py-4">Loading details...</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <script>
-        document.addEventListener('click', function(e){
-            var btn = e.target.closest('button[data-action="history"][data-ad-id]');
-            if(!btn) return;
-            var adId = btn.getAttribute('data-ad-id');
-            var body = document.getElementById('ad-history-body');
-            if (body) {
-                body.innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
-                fetch('/dashboard/admin-ad-history/' + adId + '/', {credentials:'same-origin'})
-                    .then(function(r){ return r.text(); })
-                    .then(function(html){ body.innerHTML = html; })
-                    .catch(function(){ body.innerHTML = '<div class="alert alert-danger">Failed to load history.</div>'; });
-            }
-        });
-        </script>
+        <!-- History Modal -->
+        <div class="modal fade" id="adHistoryModal" tabindex="-1" aria-labelledby="adHistoryModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="adHistoryModalLabel">Client History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="ad-history-body">
+                        <div class="text-center text-muted py-4">Loading...</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {% if completed_history %}
         <!-- Completed History Table -->
@@ -727,6 +643,105 @@
 {{ block.super }}
 <script>
 (function() {
+    // FIXED: Single modal handler for all ad details
+    document.addEventListener('click', function(e) {
+        // Handle ad details clicks
+        const detailsBtn = e.target.closest('.view-ad-details');
+        if (detailsBtn) {
+            e.preventDefault();
+            
+            const adData = {
+                id: detailsBtn.getAttribute('data-ad-id'),
+                name: detailsBtn.getAttribute('data-ad-name'),
+                business: detailsBtn.getAttribute('data-business'),
+                status: detailsBtn.getAttribute('data-status'),
+                statusClass: detailsBtn.getAttribute('data-status-class'),
+                employee: detailsBtn.getAttribute('data-employee'),
+                entryDate: detailsBtn.getAttribute('data-entry-date'),
+                startDate: detailsBtn.getAttribute('data-start-date'),
+                endDate: detailsBtn.getAttribute('data-end-date'),
+                amount: detailsBtn.getAttribute('data-amount'),
+                upiLastFour: detailsBtn.getAttribute('data-upi-last-four'),
+                adminUpi: detailsBtn.getAttribute('data-admin-upi'),
+                notes: detailsBtn.getAttribute('data-notes'),
+                renewedFrom: detailsBtn.getAttribute('data-renewed-from')
+            };
+
+            // Populate the single modal
+            const modalTitle = document.getElementById('adDetailsModalLabel');
+            const modalBody = document.getElementById('adDetailsModalBody');
+            
+            if (modalTitle && modalBody) {
+                modalTitle.textContent = `Ad Details: ${adData.name}`;
+                
+                let renewedSection = '';
+                if (adData.renewedFrom && adData.renewedFrom !== 'None') {
+                    renewedSection = `
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <h6>Renewal History</h6>
+                                <p class="text-muted">${adData.renewedFrom}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <p><strong>Ad Name:</strong> ${adData.name}</p>
+                            <p><strong>Business:</strong> ${adData.business}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-${adData.statusClass}">${adData.status}</span></p>
+                            <p><strong>Employee:</strong> ${adData.employee}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Dates</h6>
+                            <p><strong>Entry Date:</strong> ${adData.entryDate}</p>
+                            <p><strong>Start Date:</strong> ${adData.startDate}</p>
+                            <p><strong>End Date:</strong> ${adData.endDate}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Payment Information</h6>
+                            <p><strong>Amount:</strong> ${adData.amount}</p>
+                            <p><strong>Last 4 UPI Digits:</strong> ${adData.upiLastFour}</p>
+                            <p><strong>Admin UPI ID:</strong> ${adData.adminUpi}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Notes</h6>
+                            <p>${adData.notes}</p>
+                        </div>
+                    </div>
+                    ${renewedSection}
+                `;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('adDetailsModal'));
+                modal.show();
+            }
+        }
+
+        // Handle history clicks
+        const historyBtn = e.target.closest('button[data-action="history"][data-ad-id]');
+        if (historyBtn) {
+            const adId = historyBtn.getAttribute('data-ad-id');
+            const body = document.getElementById('ad-history-body');
+            if (body) {
+                body.innerHTML = '<div class="text-center text-muted py-4">Loading...</div>';
+                fetch('/dashboard/admin-ad-history/' + adId + '/', {credentials:'same-origin'})
+                    .then(function(r){ return r.text(); })
+                    .then(function(html){ body.innerHTML = html; })
+                    .catch(function(){ body.innerHTML = '<div class="alert alert-danger">Failed to load history.</div>'; });
+            }
+        }
+    });
+
     // Generate Report button handler
     document.addEventListener('click', function(e) {
         var generateBtn = e.target.closest('#admin-generate-report');
@@ -758,7 +773,6 @@
     let currentToken = null;
     let lastCounts = null;
 
-    // Schedule next poll after a delay
     function scheduleNext(delayMs) {
         setTimeout(pollOnce, delayMs);
     }
@@ -779,7 +793,6 @@
             const currentFilter = params.get('status') || 'all';
 
             if (data.counts) {
-                // Show banner for new enquiries if needed
                 if (lastCounts 
                     && data.counts.enquiry > lastCounts.enquiry 
                     && currentFilter !== 'enquiry' 
@@ -789,19 +802,17 @@
                 lastCounts = data.counts;
             }
 
-            // Reload page only if a real change occurred and token changed
-            // Also refresh when viewing the Hold filter so the Hold table stays live
             if (currentToken && data.changed && (currentFilter === 'enquiry' || currentFilter === 'hold' || currentFilter === 'all')) {
                 window.location.reload();
-                return; // stop further polling on this execution
+                return;
             }
 
-            currentToken = data.token; // update token
-            scheduleNext(1000); // poll again after 1s
+            currentToken = data.token;
+            scheduleNext(1000);
 
         } catch (e) {
             console.warn('Admin poll error:', e);
-            scheduleNext(5000); // retry after 5s on error
+            scheduleNext(5000);
         }
     }
 
@@ -826,7 +837,6 @@
 
     // Function to show toast notifications
     function showNotification(message, type = 'info') {
-        // Create notification element
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
         notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -836,17 +846,28 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         
-        // Add to page
         document.body.appendChild(notification);
         
-        // Auto remove after 3 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
         }, 3000);
     }
+
+    // FIXED: Cleanup any stuck modals on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove any orphaned backdrops
+        const hasVisibleModal = document.querySelector('.modal.show');
+        if (!hasVisibleModal) {
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    });
 })();
 </script>
 {% endblock %}
-

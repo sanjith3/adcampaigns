@@ -2,21 +2,25 @@
 
 {% block extra_css %}
 <style>
-/* Only remove stuck overlays, not all modal functionality */
-body.modal-open { 
+/* More targeted fixes */
+body.modal-open[style*="overflow: hidden"] { 
     overflow: auto !important; 
-    padding-right: 0 !important; /* Remove Bootstrap's scrollbar compensation */
 }
 
-/* Only remove backdrop if it's stuck/visible when it shouldn't be */
-.modal-backdrop.show:not(.d-none) { 
-    display: none !important; 
+/* Only remove padding-right if it's causing layout issues */
+body.modal-open[style*="padding-right"] { 
+    padding-right: 0 !important;
 }
 
-/* Ensure our content is always visible and properly positioned */
+/* Hide specific stuck backdrops, not all */
+.modal-backdrop.fade.show:not(.modal-backdrop-static) {
+    display: none !important;
+}
+
+/* Ensure our content is always visible */
 .card {
     position: relative;
-    z-index: 1;
+    z-index: 1050; /* Higher than default modal z-index */
 }
 </style>
 {% endblock %}
@@ -108,22 +112,29 @@ body.modal-open {
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // More targeted approach to fix overlay issues
-    const body = document.body;
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Only remove modal classes if we're not in an actual modal context
-    if (!urlParams.has('modal') && !window.location.hash.includes('modal')) {
-        body.classList.remove('modal-open');
+    // Clean up any stuck modal states
+    const cleanupModalState = () => {
+        const body = document.body;
         
-        // Only remove backdrops that are actually visible and stuck
-        const backdrops = document.querySelectorAll('.modal-backdrop');
-        backdrops.forEach(backdrop => {
-            if (backdrop.classList.contains('show') && getComputedStyle(backdrop).display !== 'none') {
-                backdrop.remove();
-            }
-        });
-    }
+        // Remove modal-open class if we're not in a modal context
+        if (!document.querySelector('.modal.show')) {
+            body.classList.remove('modal-open');
+            
+            // Remove any stuck backdrops
+            const stuckBackdrops = document.querySelectorAll('.modal-backdrop:not(.d-none)');
+            stuckBackdrops.forEach(backdrop => {
+                if (backdrop.parentNode) {
+                    backdrop.parentNode.removeChild(backdrop);
+                }
+            });
+        }
+    };
+    
+    // Run cleanup immediately
+    cleanupModalState();
+    
+    // Also clean up after a short delay to catch any dynamic changes
+    setTimeout(cleanupModalState, 100);
     
     // Add form submission handler
     const form = document.getElementById('holdForm');
@@ -137,18 +148,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Enhance date input if needed
+    // Enhance date input
     const holdUntilInput = document.getElementById('{{ form.hold_until.id_for_label }}');
     if (holdUntilInput) {
-        // Add date picker attributes if not already present
-        if (!holdUntilInput.hasAttribute('type')) {
-            holdUntilInput.setAttribute('type', 'date');
-        }
-        if (!holdUntilInput.hasAttribute('min')) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            holdUntilInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
-        }
+        // Ensure it's a date input
+        holdUntilInput.setAttribute('type', 'date');
+        
+        // Set min date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        holdUntilInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
     }
 });
 </script>

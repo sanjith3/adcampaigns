@@ -50,111 +50,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ----- ENHANCED: Modal and Overlay Management -----
+    // ----- FIXED: Simplified Modal and Overlay Management -----
     
-    function anyOverlayActive() {
-        const overlays = document.querySelectorAll('.modal-overlay, .modal, [class*="overlay"]');
-        for (let overlay of overlays) {
-            const style = getComputedStyle(overlay);
-            if (overlay.classList.contains('active') || 
-                overlay.classList.contains('show') ||
-                style.display === 'flex' || 
-                style.display === 'block' ||
-                overlay.style.display === 'flex' ||
-                overlay.style.display === 'block') {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function closeAllCustomOverlays() {
-        // Close custom overlays
-        document.querySelectorAll('.modal-overlay').forEach(function(ov) {
-            ov.classList.remove('active');
-            ov.style.display = 'none';
-        });
-        
-        // Close Bootstrap modals
-        const bootstrapModals = document.querySelectorAll('.modal');
-        bootstrapModals.forEach(modal => {
-            if (modal.classList.contains('show')) {
-                const bsModal = bootstrap.Modal.getInstance(modal);
-                if (bsModal) {
-                    bsModal.hide();
-                } else {
-                    modal.classList.remove('show');
-                    modal.style.display = 'none';
-                }
-            }
-        });
-        
-        // Remove backdrop and reset body
-        document.querySelectorAll('.modal-backdrop').forEach(function(el) { 
-            el.remove(); 
-        });
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-    }
-
     function cleanupStuckOverlays() {
-        const hasVisibleModal = document.querySelector('.modal.show, .modal-overlay.active');
-        const hasBackdrop = document.querySelector('.modal-backdrop');
+        // Only clean up if there are stuck modal states
+        const hasVisibleModal = document.querySelector('.modal.show');
         
         // If body says modal-open but no modal is visible, clean up
         if (document.body.classList.contains('modal-open') && !hasVisibleModal) {
+            console.log('Cleaning up stuck modal state');
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-        }
-        
-        // Remove orphaned backdrops
-        if (hasBackdrop && !hasVisibleModal) {
-            hasBackdrop.remove();
+            
+            // Remove orphaned backdrops (only if no modal is showing)
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
         }
     }
 
-    // Run cleanup on load
-    cleanupStuckOverlays();
+    // Run cleanup after a short delay to ensure page is loaded
+    setTimeout(cleanupStuckOverlays, 100);
 
-    // ESC key closes overlays
+    // ESC key closes modals (let Bootstrap handle this for Bootstrap modals)
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            closeAllCustomOverlays();
+            // Only handle custom overlays, let Bootstrap handle its modals
+            const customOverlays = document.querySelectorAll('.modal-overlay.active');
+            customOverlays.forEach(overlay => {
+                overlay.classList.remove('active');
+                overlay.style.display = 'none';
+            });
+            
+            // Clean up if no modals are left
+            cleanupStuckOverlays();
         }
     });
 
-    // Click outside closes custom overlays
+    // Click outside closes ONLY custom overlays (not Bootstrap modals)
     document.addEventListener('click', function(e) {
-        // For custom overlays
-        const customOverlay = e.target.closest('.modal-overlay');
-        if (customOverlay && e.target === customOverlay) {
-            closeAllCustomOverlays();
-        }
-        
-        // For Bootstrap modals
-        const bootstrapModal = e.target.closest('.modal');
-        if (bootstrapModal && e.target === bootstrapModal) {
-            const bsModal = bootstrap.Modal.getInstance(bootstrapModal);
-            if (bsModal) {
-                bsModal.hide();
-            }
+        // For custom overlays only
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
+            e.target.style.display = 'none';
+            cleanupStuckOverlays();
         }
     });
 
-    // Cleanup on page visibility changes
+    // Cleanup when page becomes visible again
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-            setTimeout(cleanupStuckOverlays, 100);
+            setTimeout(cleanupStuckOverlays, 50);
         }
     });
 
-    // Cleanup when navigating away
-    window.addEventListener('beforeunload', cleanupStuckOverlays);
-    
-    // Additional cleanup after page fully loads
-    window.addEventListener('load', cleanupStuckOverlays);
+    // Listen for Bootstrap modal events to prevent conflicts
+    document.addEventListener('show.bs.modal', function() {
+        console.log('Bootstrap modal opening - skipping cleanup');
+    });
+
+    document.addEventListener('hidden.bs.modal', function() {
+        console.log('Bootstrap modal closed - running cleanup');
+        setTimeout(cleanupStuckOverlays, 50);
+    });
 });
 
 // Utility functions
@@ -230,19 +189,18 @@ const AdSoft = {
         return icons[type] || 'info-circle';
     },
 
-    // New: Modal helper functions
+    // Modal helper functions - FIXED
     showModal: function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
             if (modal.classList.contains('modal')) {
-                // Bootstrap modal
+                // Bootstrap modal - let Bootstrap handle it
                 const bsModal = new bootstrap.Modal(modal);
                 bsModal.show();
             } else {
                 // Custom modal
                 modal.classList.add('active');
                 modal.style.display = 'flex';
-                document.body.classList.add('modal-open');
             }
         }
     },
@@ -251,26 +209,30 @@ const AdSoft = {
         const modal = document.getElementById(modalId);
         if (modal) {
             if (modal.classList.contains('modal')) {
-                // Bootstrap modal
+                // Bootstrap modal - let Bootstrap handle it
                 const bsModal = bootstrap.Modal.getInstance(modal);
                 if (bsModal) {
                     bsModal.hide();
-                } else {
-                    modal.classList.remove('show');
-                    modal.style.display = 'none';
                 }
             } else {
                 // Custom modal
                 modal.classList.remove('active');
                 modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
             }
         }
     }
 };
 
-// Global error handler to catch any remaining issues
+// Global error handler
 window.addEventListener('error', function(e) {
     console.error('Global error caught:', e.error);
-    // You can add error reporting here
 });
+
+// Emergency cleanup function - call this if overlays persist
+window.forceCleanupOverlays = function() {
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    console.log('Emergency overlay cleanup completed');
+};

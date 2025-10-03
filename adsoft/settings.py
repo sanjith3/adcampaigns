@@ -117,11 +117,12 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "campaigns" / "static",
 ]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'  
 
 
 # Login redirects

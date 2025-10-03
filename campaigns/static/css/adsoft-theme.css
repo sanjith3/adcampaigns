@@ -71,8 +71,8 @@ body {
   transition: var(--transition);
   margin-bottom: 1.5rem;
   overflow: hidden;
-  position: relative; /* ensure it can sit above decorative overlays */
-  z-index: 2;
+  position: relative;
+  will-change: box-shadow;
 }
 
 /* Ensure decorative pseudo-elements never intercept clicks */
@@ -111,34 +111,13 @@ body {
   padding: 0.5rem 1rem;
   border: none;
   position: relative;
-  z-index: 2;
 }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-  border-color: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-.btn-outline-primary {
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-.btn-outline-primary:hover {
-  background-color: var(--primary-color);
-  color: white;
-  transform: translateY(-1px);
-}
-
+/* Consolidate .btn-group-vertical .btn */
 .btn-group-vertical .btn {
   margin-bottom: 5px;
   border-radius: var(--border-radius) !important;
+  width: 100%;
 }
 
 /* Enhanced Tables */
@@ -298,6 +277,32 @@ button {
   padding: 1.25rem;
 }
 
+/* Make sure modal overlay does not block modal content */
+.modal {
+  pointer-events: none;
+  z-index: 1050; /* Bootstrap default, adjust if needed */
+}
+
+.modal.show .modal-content {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1060; /* Higher than overlay */
+}
+
+/* If you use a .modal-backdrop, ensure it is below .modal-content */
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+/* Ensure modal overlay only blocks background, not modal content */
+.modal {
+  pointer-events: none; /* overlay does not accept clicks */
+}
+
+.modal.show .modal-content {
+  pointer-events: auto; /* modal content is interactive */
+}
+
 /* Ensure form areas always accept input/clicks */
 .card-body,
 form {
@@ -342,7 +347,7 @@ form {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.card, .alert, .btn {
+.fade-in {
   animation: fadeIn 0.5s ease;
 }
 
