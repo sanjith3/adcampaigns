@@ -396,7 +396,7 @@
                                 <th>Entry Date</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
-                                <th>Actions</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -439,34 +439,29 @@
                                         -
                                     {% endif %}
                                 </td>
-                                <td>
-                                    {% if ad.status == 'enquiry' %}
-                                        <span class="text-muted">Waiting for payment</span>
-                                        <a href="{% url 'admin_edit_enquiry' ad.id %}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                    {% elif ad.status == 'hold' %}
-                                        <span class="text-muted">On Hold</span>
-                                        <a href="{% url 'admin_edit_hold' ad.id %}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                    {% elif ad.status == 'pending' %}
-                                        <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-check-circle"></i> Verify
-                                        </a>
-                                    {% elif ad.status == 'active' %}
-                                        <span class="text-success">Active</span>
-                                    {% elif ad.status == 'completed' %}
-                                        <span class="text-info">Completed</span>
-                                    {% endif %}
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center flex-wrap gap-2">
+                                        {% if ad.status == 'enquiry' %}
+                                            <a href="{% url 'admin_edit_enquiry' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        {% elif ad.status == 'hold' %}
+                                            <a href="{% url 'admin_edit_hold' ad.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        {% elif ad.status == 'pending' %}
+                                            <a href="{% url 'verify_payment' ad.id %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-check-circle"></i> Verify
+                                            </a>
+                                        {% endif %}
 
-                                    <!-- View details button for all ads -->
-                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" data-action="history" data-ad-id="{{ ad.id }}" data-bs-toggle="modal" data-bs-target="#adHistoryModal" >
-                                        <i class="fas fa-clock-rotate-left"></i> History
-                                    </button>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#adDetailsModal{{ ad.id }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" data-action="history" data-ad-id="{{ ad.id }}" data-bs-toggle="modal" data-bs-target="#adHistoryModal">
+                                            <i class="fas fa-clock-rotate-left"></i> History
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
 

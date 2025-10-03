@@ -143,8 +143,7 @@ body {
 
 .table-hover tbody tr:hover {
   background-color: rgba(0, 0, 0, 0.03);
-  transform: scale(1.002);
-  transition: var(--transition);
+  /* Remove transform on hover to avoid layout/pointer issues */
 }
 
 .table-striped tbody tr:nth-of-type(odd) {

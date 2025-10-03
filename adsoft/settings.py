@@ -67,17 +67,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'adsoft.wsgi.application'
 
-DATABASES = {
+MYSQL_NAME = os.getenv('DB_NAME')
+MYSQL_USER = os.getenv('DB_USER')
+MYSQL_PASSWORD = os.getenv('DB_PASSWORD')
+MYSQL_HOST = os.getenv('DB_HOST', 'localhost')
+MYSQL_PORT = os.getenv('DB_PORT', '3306')
+
+if MYSQL_NAME and MYSQL_USER and MYSQL_PASSWORD:
+    DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '3306'),
+            'NAME': MYSQL_NAME,
+            'USER': MYSQL_USER,
+            'PASSWORD': MYSQL_PASSWORD,
+            'HOST': MYSQL_HOST,
+            'PORT': MYSQL_PORT,
             'OPTIONS': {
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             },
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
