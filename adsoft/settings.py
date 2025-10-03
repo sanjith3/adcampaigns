@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'campaigns',
-    "tailwind",
+    # "tailwind",
     # "theme", 
     # "django_browser_reload",
 ]
@@ -47,11 +47,6 @@ MIDDLEWARE = [
     'adsoft.middleware.SessionErrorMiddleware',
 ]
 
-TAILWIND_APP_NAME = "theme"
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
 
 ROOT_URLCONF = 'adsoft.urls'
 
@@ -113,7 +108,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 # Login redirects
 LOGIN_REDIRECT_URL = '/dashboard/'
