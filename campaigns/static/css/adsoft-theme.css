@@ -71,17 +71,27 @@ body {
   transition: var(--transition);
   margin-bottom: 1.5rem;
   overflow: hidden;
+  position: relative; /* ensure it can sit above decorative overlays */
+  z-index: 2;
+}
+
+/* Ensure decorative pseudo-elements never intercept clicks */
+.card::before,
+.card::after {
+  pointer-events: none;
 }
 
 .card:hover {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  /* Remove translate to prevent hover jitter impacting pointer events */
 }
 
 .card-header {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding: 1rem 1.25rem;
   font-weight: 600;
+  position: relative;
+  z-index: 3;
 }
 
 .card-header.bg-primary,
@@ -100,6 +110,8 @@ body {
   transition: var(--transition);
   padding: 0.5rem 1rem;
   border: none;
+  position: relative;
+  z-index: 2;
 }
 
 .btn-primary {
@@ -143,8 +155,7 @@ body {
 
 .table-hover tbody tr:hover {
   background-color: rgba(0, 0, 0, 0.03);
-  transform: scale(1.002);
-  transition: var(--transition);
+  /* Remove transform on hover to avoid layout/pointer issues */
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
@@ -212,6 +223,19 @@ body {
   border: 1px solid #ddd;
   padding: 0.6rem 0.75rem;
   transition: var(--transition);
+  position: relative;
+  z-index: 2;
+}
+
+/* Guarantee form fields remain interactive above any overlay */
+input,
+textarea,
+select,
+label,
+button {
+  pointer-events: auto;
+  position: relative;
+  z-index: 3;
 }
 
 .form-control:focus, .form-select:focus {
@@ -272,6 +296,14 @@ body {
 
 .modal-body {
   padding: 1.25rem;
+}
+
+/* Ensure form areas always accept input/clicks */
+.card-body,
+form {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 /* Enhanced Navigation */
@@ -401,6 +433,7 @@ body {
   transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   animation: loading 1.5s infinite;
+  pointer-events: none; /* do not block interaction */
 }
 
 @keyframes loading {

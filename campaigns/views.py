@@ -7,17 +7,15 @@ from .models import AdRecord, Day1FollowUp, Day2FollowUp,UserProfile
 from django.utils import timezone #type: ignore
 from django.db.models import Count, Sum,Q, Max #type: ignore
 from django.db.models.functions import Coalesce #type: ignore
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from .forms import AdRecordForm, PaymentDetailsForm, AdminVerificationForm, ActivateAdForm, AdminCreateUserForm, AdminSetPasswordForm, HoldDetailsForm, EditEnquiryForm, EditHoldForm, SetTargetForm
 from django.contrib.auth.models import User #type: ignore
 from django.contrib.auth.views import LoginView #type: ignore
-from django.contrib.auth import logout #type: ignore
 import time
 from django.views.decorators.http import require_GET #type: ignore
-from django.core.mail import send_mail, EmailMessage #type: ignore
+from django.core.mail import EmailMessage #type: ignore
 from django.views.decorators.cache import never_cache #type: ignore
 import os
-from datetime import date,datetime #type:ignore
 
 def is_admin(user):
     return user.is_superuser
@@ -27,8 +25,6 @@ class AlwaysLoginView(LoginView):
     redirect_authenticated_user = True
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            logout(request)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -420,7 +416,7 @@ def get_counts_and_signature(queryset):
 
 @never_cache
 @login_required
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(is_admin)
 def poll_admin_status(request):
     
     timeout_seconds = 15 
@@ -753,7 +749,7 @@ def user_day2_followup(request):
 
 @login_required
 def user_dashboard(request):
-    return render(request, 'user/dashboard.html')
+    return redirect('dashboard')
 
 
 
@@ -765,7 +761,7 @@ def update_followup(request, followup_id, followup_type):
         followup = get_object_or_404(Day2FollowUp, id=followup_id)
     else:
         messages.error(request, 'Invalid follow-up type')
-        return redirect('user_dashboard')  # fallback to user dashboard
+        return redirect('dashboard')
     
     if request.method == 'POST':
         followup.contacted = request.POST.get('contacted') == 'on'

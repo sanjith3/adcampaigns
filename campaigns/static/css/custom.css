@@ -11,7 +11,6 @@
 }
 
 .dashboard-widget:hover {
-    transform: translateY(-5px);
     box-shadow: 0 5px 20px rgba(0,0,0,0.12);
 }
 
@@ -22,6 +21,7 @@
     color: white;
     position: relative;
     overflow: hidden;
+    z-index: 1; /* below form controls and buttons */
 }
 
 .stats-card::before {
@@ -32,6 +32,7 @@
     right: 0;
     height: 4px;
     background: rgba(255,255,255,0.3);
+    pointer-events: none; /* decorative only */
 }
 
 .stats-card .number {
@@ -238,7 +239,8 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 10; /* keep below modals and dropdowns */
+    pointer-events: none; /* do not block clicks by default */
 }
 
 .theme-btn {
@@ -255,6 +257,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: auto; /* clickable itself */
 }
 
 .theme-btn:hover {
@@ -271,6 +274,7 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     padding: 0.5rem;
     min-width: 150px;
+    pointer-events: auto; /* ensure options are clickable */
 }
 
 .theme-option {
