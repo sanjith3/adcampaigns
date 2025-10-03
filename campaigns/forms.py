@@ -1,8 +1,9 @@
 from django import forms #type: ignore
 from django.contrib.auth.forms import UserCreationForm #type: ignore
 from django.contrib.auth.models import User #type: ignore
+from django.utils import timezone #type: ignore
 from .models import AdRecord
-
+import datetime
 
 class AdRecordForm(forms.ModelForm):
     class Meta:
@@ -25,7 +26,6 @@ class AdRecordForm(forms.ModelForm):
         if mobile and (not mobile.isdigit() or len(mobile) != 10):
             raise forms.ValidationError('Enter a valid 10 digit mobile number')
         return mobile
-
 
 class PaymentDetailsForm(forms.ModelForm):
     use_custom = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput())
@@ -64,16 +64,31 @@ class PaymentDetailsForm(forms.ModelForm):
         # Basic format check for UPI digits already enforced by widget pattern
         return cleaned
 
-
 class HoldDetailsForm(forms.ModelForm):
     class Meta:
         model = AdRecord
         fields = ['hold_reason', 'hold_until']
         widgets = {
-            'hold_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for hold'}),
-            'hold_until': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'hold_reason': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Enter reason for placing on hold...'
+            }),
+            'hold_until': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date'
+            }),
         }
-
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make hold_reason required
+        self.fields['hold_reason'].required = True
+        
+        # Set minimum date for hold_until field
+        if 'hold_until' in self.fields:
+            today = datetime.date.today().isoformat()  # Using datetime instead of timezone
+            self.fields['hold_until'].widget.attrs['min'] = today
 
 class AdminVerificationForm(forms.Form):
     full_upi_id = forms.CharField(
@@ -90,7 +105,6 @@ class AdminVerificationForm(forms.Form):
             raise forms.ValidationError("UPI ID must be at least 4 characters long")
         return full_upi_id
 
-
 class ActivateAdForm(forms.ModelForm):
     class Meta:
         model = AdRecord
@@ -101,7 +115,6 @@ class ActivateAdForm(forms.ModelForm):
                 'type': 'date'
             }),
         }
-
 
 class AdminCreateUserForm(UserCreationForm):
     email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
@@ -127,7 +140,6 @@ class AdminCreateUserForm(UserCreationForm):
             user.save()
         return user
 
-
 class AdminSetPasswordForm(forms.Form):
     new_password1 = forms.CharField(
         label="New password",
@@ -147,7 +159,6 @@ class AdminSetPasswordForm(forms.Form):
         if p1 and len(p1) < 8:
             raise forms.ValidationError("Password must be at least 8 characters long")
         return cleaned_data
-
 
 class EditEnquiryForm(forms.ModelForm):
     class Meta:
@@ -170,7 +181,6 @@ class EditEnquiryForm(forms.ModelForm):
         if mobile and (not mobile.isdigit() or len(mobile) != 10):
             raise forms.ValidationError('Enter a valid 10 digit mobile number')
         return mobile
-
 
 class EditHoldForm(forms.ModelForm):
     class Meta:
@@ -196,7 +206,6 @@ class EditHoldForm(forms.ModelForm):
             raise forms.ValidationError('Enter a valid 10 digit mobile number')
         return mobile
 
-# Add this to your existing forms.py
 class SetTargetForm(forms.Form):
     target_amount = forms.DecimalField(
         max_digits=10, 
