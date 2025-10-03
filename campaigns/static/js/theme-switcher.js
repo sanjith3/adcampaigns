@@ -1,7 +1,7 @@
 // Theme Switcher for AdSoft
 class ThemeManager {
     constructor() {
-        this.themes = ['light', 'dark', 'hologram'];
+        this.themes = ['light', 'dark'];
         this.currentTheme = this.getStoredTheme() || 'light';
         this.init();
     }
@@ -22,7 +22,7 @@ class ThemeManager {
 
     applyTheme(theme) {
         // Remove all theme classes
-        document.body.classList.remove('dark-theme', 'hologram-theme');
+        document.body.classList.remove('dark-theme');
         
         // Apply selected theme
         if (theme !== 'light') {
@@ -56,9 +56,7 @@ class ThemeManager {
                     <button class="theme-option" data-theme="dark">
                         <i class="fas fa-moon"></i> Dark
                     </button>
-                    <button class="theme-option" data-theme="hologram">
-                        <i class="fas fa-robot"></i> Hologram
-                    </button>
+                   
                 </div>
             `;
             document.body.appendChild(themeSwitcher);
