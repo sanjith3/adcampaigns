@@ -30,9 +30,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'campaigns',
-   
-    # "theme", 
-    # "django_browser_reload",
 ]
 
 MIDDLEWARE = [
@@ -44,12 +41,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'adsoft.middleware.SessionErrorMiddleware',
-]
-
-TAILWIND_APP_NAME = "theme"
-
-INTERNAL_IPS = [
-    "127.0.0.1",
 ]
 
 ROOT_URLCONF = 'adsoft.urls'
