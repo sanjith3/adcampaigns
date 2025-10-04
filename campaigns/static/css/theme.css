@@ -178,6 +178,9 @@ body {
     font-size: 1.5rem;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
+    background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -364,6 +367,7 @@ body {
     margin: 0;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     line-height: 1.2;
 }

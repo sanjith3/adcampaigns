@@ -91,17 +91,17 @@
                         </p>
                         {% if target_progress.target > 0 %}
                         <div class="progress mt-2" style="height: 8px;">
-                            <div class="progress-bar bg-dark" 
+                            <div class="progress-bar bg-dark target-progress-bar" 
                                 role="progressbar" 
-                                style="width: {{ target_progress.progress_percentage }}%;"
-                                aria-valuenow="{{ target_progress.progress_percentage }}" 
+                                data-progress="{{ target_progress.progress_percentage|default:0 }}"
+                                aria-valuenow="{{ target_progress.progress_percentage|default:0 }}" 
                                 aria-valuemin="0" 
                                 aria-valuemax="100"
-                                aria-label="Progress: {{ target_progress.progress_percentage }}%">
-                                <span class="visually-hidden">{{ target_progress.progress_percentage }}% complete</span>
+                                aria-label="Progress: {{ target_progress.progress_percentage|default:0 }}%">
+                                <span class="visually-hidden">{{ target_progress.progress_percentage|default:0 }}% complete</span>
                             </div>
                         </div>
-                        <small class="mt-1 d-block">{{ target_progress.progress_percentage|floatformat:0 }}% Complete</small>
+                        <small class="mt-1 d-block">{{ target_progress.progress_percentage|default:0|floatformat:0 }}% Complete</small>
                         {% endif %}
                     </div>
                 </div>
@@ -439,6 +439,30 @@
 {{ block.super }}
 <script>
 (function() {
+    // Set progress bar width using JavaScript
+    function setProgressBars() {
+        document.querySelectorAll('.target-progress-bar').forEach(function(progressBar) {
+            const progress = progressBar.getAttribute('data-progress');
+            let progressValue = parseFloat(progress) || 0;
+            
+            // Ensure progress is between 0-100
+            progressValue = Math.max(0, Math.min(100, progressValue));
+            
+            // Set the width using JavaScript
+            progressBar.style.width = progressValue + '%';
+            
+            // Update ARIA attributes
+            progressBar.setAttribute('aria-valuenow', progressValue);
+            progressBar.setAttribute('aria-label', 'Progress: ' + progressValue + '%');
+            
+            // Update visually hidden text
+            const hiddenText = progressBar.querySelector('.visually-hidden');
+            if (hiddenText) {
+                hiddenText.textContent = progressValue + '% complete';
+            }
+        });
+    }
+
     // FIXED: Single modal handler for hold buttons
     document.addEventListener('click', function(e) {
         const holdBtn = e.target.closest('.add-to-hold-btn');
@@ -478,6 +502,9 @@
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         }
+        
+        // Initialize progress bars
+        setProgressBars();
     });
 
     const pollUrl = "{% url 'poll_user_status' %}";
