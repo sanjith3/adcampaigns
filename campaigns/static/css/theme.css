@@ -89,6 +89,32 @@ body {
     min-height: 100vh;
 }
 
+/* Auth Container for login/logout pages */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    padding: 2rem;
+}
+
+.auth-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Ensure auth pages have proper styling */
+.auth-content .content-area {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
 /* Sidebar Styles */
 .sidebar {
     width: 280px;
