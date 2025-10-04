@@ -92,11 +92,13 @@
                         {% if target_progress.target > 0 %}
                         <div class="progress mt-2" style="height: 8px;">
                             <div class="progress-bar bg-dark" 
-                                 role="progressbar" 
-                                 style="width: {{ target_progress.progress_percentage }}%;"
-                                 aria-valuenow="{{ target_progress.progress_percentage }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
+                                role="progressbar" 
+                                style="width: {{ target_progress.progress_percentage }}%;"
+                                aria-valuenow="{{ target_progress.progress_percentage }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100"
+                                aria-label="Progress: {{ target_progress.progress_percentage }}%">
+                                <span class="visually-hidden">{{ target_progress.progress_percentage }}% complete</span>
                             </div>
                         </div>
                         <small class="mt-1 d-block">{{ target_progress.progress_percentage|floatformat:0 }}% Complete</small>
