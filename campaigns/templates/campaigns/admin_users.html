@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    <div class="container-fluid col-md-7">
+    <div class="col-md-7">
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="fas fa-users"></i> Users</h5>
@@ -88,26 +88,26 @@
                                     <div class="btn-group btn-group-sm">
                                         <!-- Set Target Button -->
                                         <a href="{% url 'admin_set_target' u.id %}" 
-                                           class="btn btn-warning" 
+                                           class="btn btn-outline-warning" 
                                            title="Set Target">
                                             <i class="fas fa-bullseye"></i> Target
                                         </a>
                                         
                                         <!-- Set Password Button -->
                                         <a href="{% url 'admin_set_password' u.id %}" 
-                                           class="btn btn-info text-white" 
+                                           class="btn btn-outline-primary" 
                                            title="Set Password">
-                                            <i class="fas fa-key"></i> Password
+                                            <i class="fas fa-key"></i>
                                         </a>
                                         
                                         <!-- Delete Button -->
                                         <form method="post" 
                                               action="{% url 'admin_delete_user' u.id %}" 
                                               class="d-inline" 
-                                              onsubmit="return confirm('Are you sure you want to delete user {{ u.username }}? This action cannot be undone.');">
+                                              onsubmit="return confirm('Delete user {{ u.username }}?');">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger" title="Delete User">
-                                                <i class="fas fa-trash"></i> Delete
+                                            <button type="submit" class="btn btn-outline-danger" title="Delete User">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>

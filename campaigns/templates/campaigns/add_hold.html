@@ -31,6 +31,10 @@ body.modal-open[style*="padding-right"] {
     <div class="card shadow-sm">
       <div class="card-header bg-warning text-dark">
         <h3 class="card-title mb-0"><i class="fas fa-pause-circle me-2"></i> Place Enquiry on Hold</h3>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-pause"></i> Place Enquiry on Hold</h3>
+        <p class="text-muted mb-0">Enquiry: {{ ad.ad_name }} - {{ ad.business_name }}</p>
       </div>
       <div class="card-body p-4">
         <div class="alert alert-info mb-4">
@@ -48,59 +52,27 @@ body.modal-open[style*="padding-right"] {
           </div>
           {% endif %}
           
-          <div class="mb-4">
-            <label for="{{ form.hold_reason.id_for_label }}" class="form-label fw-semibold">
-              <i class="fas fa-comment-dots me-2"></i>Reason for Hold
+          {% for field in form %}
+          <div class="mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label">
+              {{ field.label }}
+              {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
             </label>
-            {{ form.hold_reason }}
-            {% if form.hold_reason.errors %}
-            <div class="text-danger small mt-2">
-              <i class="fas fa-exclamation-circle me-1"></i>
-              {% for err in form.hold_reason.errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+            {{ field }}
+            {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in field.errors %}{{ error }}{% endfor %}
             </div>
             {% endif %}
-            <div class="form-text">Please provide a clear reason for placing this enquiry on hold.</div>
           </div>
+          {% endfor %}
           
-          <div class="mb-4">
-            <label for="{{ form.hold_until.id_for_label }}" class="form-label fw-semibold">
-              <i class="fas fa-calendar-alt me-2"></i>Hold Until (optional)
-            </label>
-            {{ form.hold_until }}
-            {% if form.hold_until.errors %}
-            <div class="text-danger small mt-2">
-              <i class="fas fa-exclamation-circle me-1"></i>
-              {% for err in form.hold_until.errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
-            </div>
-            {% endif %}
-            <div class="form-text">Leave empty if the hold duration is indefinite.</div>
-          </div>
-          
-          <!-- Ad Summary -->
-          <div class="card bg-light mb-4">
-            <div class="card-body">
-              <h6 class="card-title mb-3"><i class="fas fa-file-alt me-2"></i>Ad Summary</h6>
-              <div class="row">
-                <div class="col-md-6">
-                  <strong>Ad Name:</strong> {{ ad.ad_name }}<br>
-                  <strong>Business:</strong> {{ ad.business_name }}<br>
-                  <strong>Mobile:</strong> {{ ad.mobile_number }}
-                </div>
-                <div class="col-md-6">
-                  <strong>Amount:</strong> ${{ ad.amount }}<br>
-                  <strong>Status:</strong> <span class="badge bg-warning text-dark">Pending Hold</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-4">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary me-md-2">
-              <i class="fas fa-times me-2"></i>Cancel
-            </a>
-            <button type="submit" class="btn btn-warning text-dark">
-              <i class="fas fa-pause-circle me-2"></i>Confirm Hold
-            </button>
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">Confirm Hold</button>
           </div>
         </form>
       </div>
@@ -108,56 +80,3 @@ body.modal-open[style*="padding-right"] {
   </div>
 </div>
 {% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Clean up any stuck modal states
-    const cleanupModalState = () => {
-        const body = document.body;
-        
-        // Remove modal-open class if we're not in a modal context
-        if (!document.querySelector('.modal.show')) {
-            body.classList.remove('modal-open');
-            
-            // Remove any stuck backdrops
-            const stuckBackdrops = document.querySelectorAll('.modal-backdrop:not(.d-none)');
-            stuckBackdrops.forEach(backdrop => {
-                if (backdrop.parentNode) {
-                    backdrop.parentNode.removeChild(backdrop);
-                }
-            });
-        }
-    };
-    
-    // Run cleanup immediately
-    cleanupModalState();
-    
-    // Also clean up after a short delay to catch any dynamic changes
-    setTimeout(cleanupModalState, 100);
-    
-    // Add form submission handler
-    const form = document.getElementById('holdForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Placing on Hold...';
-            }
-        });
-    }
-    
-    // Enhance date input
-    const holdUntilInput = document.getElementById('{{ form.hold_until.id_for_label }}');
-    if (holdUntilInput) {
-        // Ensure it's a date input
-        holdUntilInput.setAttribute('type', 'date');
-        
-        // Set min date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        holdUntilInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
-    }
-});
-</script>
