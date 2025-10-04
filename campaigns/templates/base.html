@@ -157,14 +157,13 @@
 
 
        <!-- Follow-up Notification Bell -->
-            <div class="top-actions follow-btn">
-                <a href="?view=follow" class="btn btn-success position-relative">
+            <div class="top-actions follow-btn d-flex align-items-center gap-2">
+                <a href="?view=follow" class="btn btn-success">
                     <i class="fas fa-bell"></i> Follow-up
-                    <span id="user-follow-badge"
-                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                          style="display:none;">
-                    </span>
-                </a>                
+                </a>
+                <div id="user-follow-badge" class="followup-badge" style="display:none;">
+                    <span class="badge-count">0</span>
+                </div>
             </div>
 
 
@@ -202,13 +201,17 @@
     <script>
         function updateFollowUpBadge(count) {
             const badge = document.getElementById('user-follow-badge');
-            if (!badge) return;
+            const badgeCount = badge ? badge.querySelector('.badge-count') : null;
+            
+            if (!badge || !badgeCount) return;
         
             if (count > 0) {
-                badge.textContent = count;
-                badge.style.display = 'inline-block';
+                badgeCount.textContent = count;
+                badge.style.display = 'flex';
+                badge.style.visibility = 'visible';
             } else {
                 badge.style.display = 'none';
+                badge.style.visibility = 'hidden';
             }
         }
         
@@ -226,6 +229,9 @@
         
         // Auto-refresh every 30 seconds
         setInterval(fetchNotifications, 30000);
+        
+        // Test function to show badge (remove in production)
+        // updateFollowUpBadge(5); // Uncomment to test badge visibility
         </script>
         
         
