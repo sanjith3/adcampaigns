@@ -17,14 +17,6 @@
                     <i class="fas fa-shield-alt"></i> Admin Dashboard
                 {% endif %}
             </h1>
-            <!-- <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-primary me-2">Total Ads: {{ status_counts.all }}</span>
-                <span class="badge bg-secondary me-2">Enquiries: {{ status_counts.enquiry }}</span>
-                <span class="badge bg-dark me-2">Hold: {{ status_counts.hold }}</span>
-                <span class="badge bg-warning me-2">Pending: {{ status_counts.pending }}</span>
-                <span class="badge bg-success me-2">Active: {{ status_counts.active }}</span>
-                <span class="badge bg-info">Completed: {{ status_counts.completed }}</span>
-            </div> -->
         </div>
 
         <div class="mb-3 d-flex gap-2">
@@ -45,9 +37,9 @@
                     <i class="fas fa-chart-line"></i> Back to Dashboard
                 </a>
             {% else %}
-                <a href="?status={{ status_filter }}&view=follow" class="btn btn-primary position-relative">
-                    <i class="fas fa-bell"></i> Follow-up
-                    <span id="admin-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span>
+                <a href="?status={{ status_filter }}&view=follow">
+                    <!-- <i class="fas fa-bell"></i>  -->
+                    <!-- <span id="admin-follow-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;"></span> -->
                 </a>
             {% endif %}
         </div>
@@ -247,7 +239,9 @@
                                 <td>{% if item.start_date %}{{ item.start_date|date:"M d, Y" }}{% else %}-{% endif %}</td>
                                 <td>{% if item.end_date %}{{ item.end_date|date:"M d, Y" }}{% else %}-{% endif %}</td>
                                 <td>
-                                    <span class="badge bg-{{ item.get_status_display_class }}">{{ item.get_status_display }}</span>
+                                    <span class="status-badge status-{{ item.status }}">
+                                        {{ item.get_status_display }}
+                                    </span>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -401,15 +395,18 @@
                                 <td>{{ ad.business_name }}</td>
                                 <td>{{ ad.mobile_number }}</td>
                                 <td>
-                                    <span class="badge bg-{{ ad.get_status_display_class }}">
+                                    <!-- FIXED: Using custom status badge classes -->
+                                    <span class="status-badge status-{{ ad.status }}">
                                         {{ ad.get_status_display }}
                                     </span>
                                 </td>
                                 <td>
                                     {% if ad.amount %}
-                                        ₹{{ ad.amount }}
+                                        <span class="status-badge status-amount">
+                                            ₹{{ ad.amount }}
+                                        </span>
                                     {% else %}
-                                        -
+                                        <span class="status-empty">-</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -424,14 +421,14 @@
                                     {% if ad.start_date %}
                                         {{ ad.start_date|date:"M d, Y" }}
                                     {% else %}
-                                        -
+                                        <span class="status-empty">-</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if ad.end_date %}
                                         {{ ad.end_date|date:"M d, Y" }}
                                     {% else %}
-                                        -
+                                        <span class="status-empty">-</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
@@ -693,7 +690,7 @@
                             <h6>Basic Information</h6>
                             <p><strong>Ad Name:</strong> ${adData.name}</p>
                             <p><strong>Business:</strong> ${adData.business}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-${adData.statusClass}">${adData.status}</span></p>
+                            <p><strong>Status:</strong> <span class="status-badge status-${adData.status}">${adData.status}</span></p>
                             <p><strong>Employee:</strong> ${adData.employee}</p>
                         </div>
                         <div class="col-md-6">

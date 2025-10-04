@@ -14,8 +14,6 @@ SECRET_KEY = 'django-insecure-vmkxe%v+n%+9ds0(33e02ork$5h&!3tg-_-zj8-nl1xja9&%h*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
 ALLOWED_HOSTS = ["*", "localhost"]
 
 # Application definition
@@ -114,22 +112,20 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 # Login redirects
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/login/'
 
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # default
-SESSION_COOKIE_AGE = 1209600  # seconds (2 weeks default)
-SESSION_SAVE_EVERY_REQUEST = False
-
-
-# Session configuration to prevent timeout issues
-SESSION_COOKIE_AGE = 3600 * 24  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
+# Session Configuration - FIXED
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # Changed to cached_db for better performance
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_SAVE_EVERY_REQUEST = False  # Changed to False to prevent session conflicts
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Session cookie settings for better security
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -139,7 +135,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-# Fixed account to send through (will use user's email as From header when provided)
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
