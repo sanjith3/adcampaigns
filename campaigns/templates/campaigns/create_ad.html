@@ -88,10 +88,11 @@
                 const adName = escapeHtml(item.ad_name);
                 const status = escapeHtml(item.status);
                 const notes = escapeHtml(item.notes || '');
+                // UPDATED: Using custom status badge classes
                 el.innerHTML = `
                     <div class="d-flex w-100 justify-content-between">
                         <strong>${adName}</strong>
-                        <span class="badge bg-secondary">${status}</span>
+                        <span class="status-badge status-${status}">${status}</span>
                     </div>
                     <div class="small text-muted" style="white-space:pre-wrap;">${notes}</div>
                 `;
