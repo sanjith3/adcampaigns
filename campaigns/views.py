@@ -195,7 +195,6 @@ def add_hold(request, ad_id):
     if request.user.is_superuser:
         messages.error(request, 'Admins cannot change hold for user enquiries here.')
         return redirect('admin_dashboard')
-    
     ad = get_object_or_404(AdRecord, id=ad_id, user=request.user)
     if ad.status not in ['enquiry', 'hold']:
         messages.error(request, 'Only enquiries or existing holds can be updated.')
@@ -209,20 +208,11 @@ def add_hold(request, ad_id):
             ad.save()
             messages.success(request, 'Enquiry placed on hold.')
             return redirect('dashboard')
-        else:
-            # Debug form errors
-            print("Form errors:", form.errors)
-            messages.error(request, 'Please correct the errors below.')
     else:
         form = HoldDetailsForm(instance=ad)
-        # Debug: Print form fields to console
-        print("Form fields:", form.fields)
-        print("Initial data:", form.initial)
 
-    return render(request, 'campaigns/add_hold.html', {
-        'form': form, 
-        'ad': ad
-    })
+    return render(request, 'campaigns/add_hold.html', {'form': form, 'ad': ad})
+
 
 @login_required
 def remove_hold(request, ad_id):

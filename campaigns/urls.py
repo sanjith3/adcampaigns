@@ -44,4 +44,5 @@ urlpatterns = [
         path('user/day2-followup/', views.user_day2_followup, name='user_day2_followup'),
         path('user/dashboard/', views.user_dashboard, name='user_dashboard'),
     path('update-followup/<int:followup_id>/<str:followup_type>/', views.update_followup, name='update_followup'),
+    
 ]
