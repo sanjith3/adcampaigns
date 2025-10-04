@@ -951,6 +951,15 @@ body {
     box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
+.btn-icon {
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+
 /* Filter Section */
 .filter-section {
     background: var(--bg-primary);

@@ -78,9 +78,9 @@
                                 </td>
                                 <td>
                                     {% if u.is_superuser %}
-                                        <span class="badge bg-danger">Admin</span>
+                                        <span class="status-badge status-danger">Admin</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">User</span>
+                                        <span class="status-badge status-secondary">User</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -88,17 +88,16 @@
                                     <div class="btn-group btn-group-sm">
                                         <!-- Set Target Button -->
                                         <a href="{% url 'admin_set_target' u.id %}" 
-                                           class="btn btn-outline-warning" 
-                                           title="Set Target">
-                                            <i class="fas fa-bullseye"></i>
-                                        </a>
-                                        
-                                        <!-- Set Password Button -->
-                                        <a href="{% url 'admin_set_password' u.id %}" 
-                                           class="btn btn-outline-primary" 
-                                           title="Update Password">
-                                            <i class="fas fa-key"></i>
-                                        </a>
+                                            class="btn btn-outline-warning btn-icon" 
+                                            title="Set Target">
+                                                <i class="fas fa-bullseye"></i>
+                                            </a>
+
+                                            <a href="{% url 'admin_set_password' u.id %}" 
+                                            class="btn btn-outline-primary btn-icon" 
+                                            title="Update Password">
+                                                <i class="fas fa-key"></i>
+                                            </a>
                                         
                                         <!-- Delete Button -->
                                         <form method="post" 
