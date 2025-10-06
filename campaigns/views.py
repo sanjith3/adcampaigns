@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404 #type: ignore
 from django.contrib.auth.decorators import login_required, user_passes_test #type: ignore
 from django.contrib import messages #type: ignore
-from django.http import JsonResponse #type: ignore
+from django.http import JsonResponse , HttpResponseNotFound #type: ignore
 from django.db import transaction #type: ignore
 from .models import AdRecord, Day1FollowUp, Day2FollowUp,UserProfile  
 from django.utils import timezone #type: ignore
@@ -913,3 +913,9 @@ def enquiry_history(request):
         'title': 'Enquiry History'
     }
     return render(request, 'campaigns/enquiry_history.html', context)
+
+
+def well_known_handler(request, path):
+    if path == 'com.chrome.devtools.json':
+        return JsonResponse({}, status=200)
+    return HttpResponseNotFound()
